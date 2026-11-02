@@ -52,7 +52,9 @@ export class JobRunner {
   }
 
   private assertCanStart(): void {
-    if (!this.d.config.apiKey) throw new HttpError(400, "Claude desativado: defina ANTHROPIC_API_KEY no .env");
+    if (!this.d.config.apiKey && !this.d.config.mock) {
+      throw new HttpError(400, "Claude desativado: defina ANTHROPIC_API_KEY no .env (ou CLAUDE_MOCK=true para testar sem custo)");
+    }
     if (this.isRunning()) throw new HttpError(409, "O Claude já está trabalhando em outro pedido");
   }
 

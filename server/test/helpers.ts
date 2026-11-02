@@ -29,6 +29,7 @@ export function makeConfig(projectDir: string, over: Partial<Config> = {}): Conf
     userName: "Gabriel",
     port: 0,
     autoCommit: true,
+    mock: false,
     ...over,
   };
 }

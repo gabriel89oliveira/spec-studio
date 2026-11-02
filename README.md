@@ -32,6 +32,18 @@ USER_NAME=Gabriel
 
 Para parar, use Ctrl+C no terminal.
 
+## Testar sem gastar créditos
+
+Com `CLAUDE_MOCK=true` no `.env` (e o servidor reiniciado), um Claude simulado responde no lugar do real, sem chamar a API e sem custo. A chave da API nem precisa estar preenchida. O topo da tela mostra **modo simulado**.
+
+O modo simulado percorre o fluxo inteiro: mostra o progresso ao vivo, registra as ferramentas, altera o arquivo e faz o commit. As alterações são reais, mas sempre marcadas:
+
+- **Comentário ou chat com um arquivo aberto:** acrescenta uma seção "Nota do modo simulado" no fim do arquivo.
+- **Comentário que termina com "?":** só responde, sem alterar arquivos.
+- **+ Feature / + Módulo:** cria o rascunho a partir de `docs/_templates/`, com o próximo ID livre.
+
+Para desfazer as notas de teste, use o Histórico. Serve para testar a interface e o fluxo, não a qualidade das respostas. Para isso, use `CLAUDE_MODEL=haiku`, que custa bem menos que o Sonnet.
+
 ## Testes
 
 ```powershell

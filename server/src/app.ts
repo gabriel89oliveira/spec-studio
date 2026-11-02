@@ -4,6 +4,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import type { FSWatcher } from "chokidar";
 import { z } from "zod";
 import { realQuery, type QueryFn } from "./claude.js";
+import { mockQuery } from "./mock.js";
 import { CommentStore } from "./comments.js";
 import type { Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
@@ -46,7 +47,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
   const tracker = new SourceTracker();
   const comments = new CommentStore(root);
   const sessions = new SessionStore(root);
-  const jobs = new JobRunner({ config, git, comments, sessions, bus, tracker, queryFn: opts.queryFn ?? realQuery });
+  const jobs = new JobRunner({ config, git, comments, sessions, bus, tracker, queryFn: opts.queryFn ?? (config.mock ? mockQuery : realQuery) });
 
   const commitComments = async (file: string, what: string) => {
     if (config.autoCommit) await git.commitPaths([comments.relFileFor(file)], `comentários: ${file} (${what})`);
@@ -70,8 +71,9 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
         userName: config.userName,
         autoCommit: config.autoCommit,
         claude: {
-          enabled: Boolean(config.apiKey),
-          model: config.model,
+          enabled: Boolean(config.apiKey) || config.mock,
+          mock: config.mock,
+          model: config.mock ? "modo simulado" : config.model,
           job: jobs.publicJob(),
           lastCostUsd: jobs.lastCostUsd ?? null,
           lastChangedFiles: jobs.lastChangedFiles,

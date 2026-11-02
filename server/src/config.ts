@@ -11,6 +11,8 @@ export type Config = {
   userName: string;
   port: number;
   autoCommit: boolean;
+  /** Modo simulado: um Claude de mentira, sem custo, para testar a interface. */
+  mock: boolean;
 };
 
 export class ConfigError extends Error {}
@@ -32,6 +34,10 @@ const schema = z.object({
   AUTO_COMMIT: z.preprocess(
     emptyToUndefined,
     z.enum(["true", "false"], { error: "AUTO_COMMIT deve ser true ou false" }).default("true"),
+  ),
+  CLAUDE_MOCK: z.preprocess(
+    emptyToUndefined,
+    z.enum(["true", "false"], { error: "CLAUDE_MOCK deve ser true ou false" }).default("false"),
   ),
 });
 
@@ -64,5 +70,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     userName: v.USER_NAME,
     port: v.PORT,
     autoCommit: v.AUTO_COMMIT === "true",
+    mock: v.CLAUDE_MOCK === "true",
   };
 }

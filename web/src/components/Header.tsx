@@ -36,7 +36,17 @@ export function Header({ project, busy, lastError, connected }: Props) {
         </span>
       </div>
       <div className="flex items-center gap-3 text-xs text-zinc-500">
-        {project?.claude.enabled && <span>{project.claude.model}</span>}
+        {project?.claude.mock ? (
+          <span
+            className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+            title="Claude simulado, sem custo. Tire CLAUDE_MOCK=true do .env para usar o Claude de verdade."
+            data-testid="mock-badge"
+          >
+            modo simulado
+          </span>
+        ) : (
+          project?.claude.enabled && <span>{project.claude.model}</span>
+        )}
         {project?.claude.lastCostUsd != null && <span data-testid="cost">custo: {formatCost(project.claude.lastCostUsd)}</span>}
       </div>
     </header>

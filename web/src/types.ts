@@ -43,6 +43,7 @@ export type Project = {
   autoCommit: boolean;
   claude: {
     enabled: boolean;
+    mock: boolean;
     model: string;
     job: Job | null;
     lastCostUsd: number | null;

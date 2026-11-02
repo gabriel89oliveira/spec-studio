@@ -87,9 +87,17 @@ async function main(): Promise<void> {
 
   const httpServer = server.app.listen(config.port, "127.0.0.1", () => {
     log(`Servidor em http://127.0.0.1:${config.port}`);
-    log(`Claude: ${config.apiKey ? `ativado (${config.model})` : "desativado (defina ANTHROPIC_API_KEY no .env)"}`);
+    log(
+      `Claude: ${
+        config.mock
+          ? "MODO SIMULADO (sem custo; tire CLAUDE_MOCK=true do .env para usar o Claude de verdade)"
+          : config.apiKey
+            ? `ativado (${config.model})`
+            : "desativado (defina ANTHROPIC_API_KEY no .env)"
+      }`,
+    );
     log("Pronto. Abra http://localhost:5173 no navegador");
-    if (config.apiKey) void warmUpClaude();
+    if (config.apiKey && !config.mock) void warmUpClaude();
   });
   httpServer.on("error", (err: NodeJS.ErrnoException) => {
     log(

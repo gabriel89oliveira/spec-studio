@@ -361,3 +361,78 @@ describe("Fase 5 — Histórico", () => {
     expect(await simpleGit(dir).status()).toMatchObject({ conflicted: [] });
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("Modo simulado (CLAUDE_MOCK=true)", () => {
+  async function mockSetup() {
+    const dir = makeProject();
+    fs.mkdirSync(path.join(dir, "docs", "_templates"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "docs", "_templates", "feature.md"), "# F00 — [Nome da feature]\n\n| Campo | Valor |\n|---|---|\n| Módulo | [M00] |\n\n## Objetivo\n[1 frase]\n");
+    fs.writeFileSync(path.join(dir, "docs", "_templates", "modulo.md"), "# M00 — [Nome do módulo]\n\n## Responsabilidade\n[texto]\n");
+    const srv = await createServer(makeConfig(dir, { apiKey: undefined, mock: true }), { watch: false });
+    open.push(srv);
+    return { dir, srv, api: request(srv.app) };
+  }
+
+  it("fica ativo sem chave da API e sinaliza o modo", async () => {
+    const { api } = await mockSetup();
+    const p = await api.get("/api/project").expect(200);
+    expect(p.body.claude).toMatchObject({ enabled: true, mock: true, model: "modo simulado" });
+  });
+
+  it("comentário: altera o arquivo com conteúdo marcado, responde e faz commit, sem custo", async () => {
+    const { api, dir, srv } = await mockSetup();
+    const { body: c } = await api
+      .post("/api/comments")
+      .send({ file: "docs/CONCEITO.md", anchor: { quote: "Resumo" }, body: "Detalhe o público" })
+      .expect(201);
+    await api.post(`/api/comments/${c.id}/send`).expect(202);
+    await srv.jobs.idle;
+    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8")).toContain("## Nota do modo simulado");
+    const list = await api.get("/api/comments").query({ path: "docs/CONCEITO.md" });
+    expect(list.body[0].status).toBe("answered");
+    expect(list.body[0].replies[0].body).toContain("Modo simulado");
+    expect((await log(dir)).some((x) => x.message.startsWith("claude: Detalhe o público"))).toBe(true);
+    expect(srv.jobs.lastCostUsd).toBe(0);
+  });
+
+  it("pergunta no comentário: responde sem alterar arquivos", async () => {
+    const { api, dir, srv } = await mockSetup();
+    const before = fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8");
+    const { body: c } = await api
+      .post("/api/comments")
+      .send({ file: "docs/CONCEITO.md", anchor: { quote: "Resumo" }, body: "Isso inclui motoristas?" })
+      .expect(201);
+    await api.post(`/api/comments/${c.id}/send`).expect(202);
+    await srv.jobs.idle;
+    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8")).toBe(before);
+    expect(srv.jobs.current?.changedFiles).toEqual([]);
+  });
+
+  it("cria feature e módulo a partir dos templates, com o próximo ID livre", async () => {
+    const { api, dir, srv } = await mockSetup();
+    await api
+      .post("/api/chat")
+      .send({ message: 'Crie o rascunho da feature "Aprovar orçamento" no módulo M01 a partir de docs/_templates/feature.md, seguindo o CLAUDE.md.' })
+      .expect(202);
+    await srv.jobs.idle;
+    const feature = fs.readFileSync(path.join(dir, "docs", "features", "F02-aprovar-orcamento.md"), "utf8");
+    expect(feature).toContain("# F02 — Aprovar orçamento");
+    expect(feature).toContain("| Módulo | M01 |");
+
+    await api.post("/api/chat").send({ message: 'Crie o rascunho do módulo "Rede de oficinas" a partir de docs/_templates/modulo.md.' }).expect(202);
+    await srv.jobs.idle;
+    expect(fs.readFileSync(path.join(dir, "docs", "modulos", "M01-rede-de-oficinas.md"), "utf8")).toContain("# M01 — Rede de oficinas");
+  });
+
+  it("pode ser cancelado", async () => {
+    const { api, srv } = await mockSetup();
+    const events: { event: EventName; data: any }[] = [];
+    srv.bus.on((event, data) => events.push({ event, data }));
+    const { body } = await api.post("/api/chat").send({ message: "Revise o conceito", openFile: "docs/CONCEITO.md" }).expect(202);
+    await new Promise((r) => setTimeout(r, 100));
+    await api.post(`/api/jobs/${body.jobId}/cancel`).expect(200);
+    await srv.jobs.idle;
+    expect(events.find((e) => e.event === "job.error")?.data.message).toBe("Cancelado");
+  });
+});
