@@ -1,10 +1,4 @@
-import {
-  query as sdkQuery,
-  type HookCallback,
-  type Options,
-  type SDKMessage,
-  type SyncHookJSONOutput,
-} from "@anthropic-ai/claude-agent-sdk";
+import type { HookCallback, Options, SDKMessage, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { Comment } from "./comments.js";
 import { checkAgentPath, checkAgentPattern, toPosix } from "./paths.js";
 import path from "node:path";
@@ -22,7 +16,31 @@ Ao terminar, responda em português com um resumo de uma a três linhas do que m
 /** Assinatura mínima de query() usada aqui; permite injetar uma versão simulada nos testes. */
 export type QueryFn = (params: { prompt: string; options: Options }) => AsyncIterable<SDKMessage>;
 
-export const realQuery: QueryFn = (params) => sdkQuery(params);
+type Sdk = typeof import("@anthropic-ai/claude-agent-sdk");
+let sdkLoading: Promise<Sdk> | null = null;
+
+/**
+ * Carrega o Agent SDK sob demanda. No Windows a primeira carga pode demorar
+ * (o SDK traz o executável do Claude Code, com mais de 300 MB), então ela não
+ * bloqueia a inicialização do servidor.
+ */
+export function loadSdk(): Promise<Sdk> {
+  sdkLoading ??= import("@anthropic-ai/claude-agent-sdk").catch((err) => {
+    sdkLoading = null;
+    throw err;
+  });
+  return sdkLoading;
+}
+
+export const realQuery: QueryFn = async function* (params) {
+  const signal = params.options.abortController?.signal;
+  const aborted = new Promise<never>((_, reject) => {
+    if (signal?.aborted) reject(new Error("aborted"));
+    signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+  });
+  const { query } = await Promise.race([loadSdk(), aborted]);
+  yield* query(params);
+};
 
 export type ClaudeConfig = { projectDir: string; model: string; apiKey?: string };
 

@@ -68,6 +68,13 @@ Pontos que a especificação não definia, ou onde houve um desvio deliberado:
 12. **Evento `job.started`** também traz `commentId` e `sessionId`.
 13. **Aviso de arquivo atualizado** mostra o diff entre o que estava na tela e a versão nova, calculado no navegador.
 14. **Desfazer com conflito** (alterações posteriores nas mesmas linhas) é abortado com uma explicação, e nada muda.
+15. **Servidor compilado com `tsc` e executado com Node puro** (`node --watch`), em vez de `tsx`. No Windows, o `tsx` travava ao carregar o Agent SDK. O Agent SDK também é carregado sob demanda, logo depois que o servidor sobe, para nunca atrasar a inicialização.
+
+## Se algo não funcionar
+
+- A cada inicialização, o servidor grava os passos em `server/startup.log`. A última linha diz onde parou.
+- Se a configuração estiver errada, o servidor continua no ar só para mostrar o motivo na tela. Corrija o `.env` e reinicie com Ctrl+C e `npm run dev`.
+- "A porta 3001 já está em uso": troque `PORT` no `.env` (ex.: `PORT=3101`) e reinicie.
 
 ## Limitações conhecidas
 

@@ -28,7 +28,13 @@ async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
   } catch {
     /* resposta sem JSON */
   }
-  if (!res.ok) throw new ApiError(res.status, (data.error as string) || `Erro ${res.status}`, data);
+  if (!res.ok) {
+    const fallback =
+      res.status >= 500
+        ? "O servidor do Spec Studio não está respondendo. Veja a mensagem no terminal do npm run dev ou no arquivo server/startup.log."
+        : `Erro ${res.status}`;
+    throw new ApiError(res.status, (data.error as string) || fallback, data);
+  }
   return data as T;
 }
 

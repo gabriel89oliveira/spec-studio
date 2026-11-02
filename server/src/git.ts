@@ -43,7 +43,11 @@ export class GitService {
    * e faz o commit inicial. Garante .spec-studio/sessions/ no .gitignore.
    */
   static async open(root: string, userName: string): Promise<GitService> {
-    const base = simpleGit({ baseDir: root, config: ["core.quotePath=false"] });
+    // Nunca esperar por senha ou passphrase de assinatura: o servidor não tem terminal.
+    process.env.GIT_TERMINAL_PROMPT = "0";
+    const options = { baseDir: root, timeout: { block: 20000 } };
+    const common = ["core.quotePath=false", "commit.gpgsign=false"];
+    const base = simpleGit({ ...options, config: common });
 
     const isRepo = await base.checkIsRepo();
     if (!isRepo) await base.init();
@@ -51,10 +55,10 @@ export class GitService {
     // Sem identidade configurada no Git, usa USER_NAME para os commits.
     const name = (await base.getConfig("user.name")).value;
     const email = (await base.getConfig("user.email")).value;
-    const config = ["core.quotePath=false"];
+    const config = [...common];
     if (!name) config.push(`user.name=${userName}`);
     if (!email) config.push("user.email=spec-studio@localhost");
-    const git = simpleGit({ baseDir: root, config });
+    const git = simpleGit({ ...options, config });
     const svc = new GitService(root, git);
 
     svc.ensureGitignore();
