@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { TreeNode } from "../types";
-import { btn, btnPrimary, input } from "../ui";
+import { btn, btnClaude, btnGhost, displayName, input } from "../ui";
+import { IconChevron, IconFile, IconPlus } from "./Icons";
 
 type Props = {
   tree: TreeNode[];
@@ -23,25 +24,32 @@ function modulesOf(tree: TreeNode[]): { id: string; label: string }[] {
     });
 }
 
+const INDENT = 14;
+
 function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Props }) {
   const [open, setOpen] = useState(!node.name.startsWith("_"));
-  const pad = { paddingLeft: `${8 + depth * 12}px` };
 
   if (node.type === "dir") {
     return (
       <div>
         <button
-          className="flex w-full items-center gap-1 py-1 pr-2 text-left text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          style={pad}
+          className="group flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[13px] font-medium text-ink-2 hover:text-ink"
+          style={{ paddingLeft: `${6 + depth * INDENT}px` }}
           onClick={() => setOpen(!open)}
+          aria-expanded={open}
         >
-          <span className="w-3 text-[10px]">{open ? "▾" : "▸"}</span>
+          <IconChevron className={`h-3 w-3 shrink-0 text-ink-3 transition-transform ${open ? "rotate-90" : ""}`} />
           {node.name}
         </button>
-        {open && node.children?.map((c) => <Node key={c.path} node={c} depth={depth + 1} props={props} />)}
-        {open && node.children?.length === 0 && (
-          <div className="py-1 text-[11px] italic text-zinc-400" style={{ paddingLeft: `${20 + (depth + 1) * 12}px` }}>
-            vazio
+        {open && (
+          <div className="relative">
+            <span className="absolute bottom-1 top-0 w-px bg-line" style={{ left: `${11 + depth * INDENT}px` }} aria-hidden="true" />
+            {node.children?.map((c) => <Node key={c.path} node={c} depth={depth + 1} props={props} />)}
+            {node.children?.length === 0 && (
+              <div className="py-1 text-xs italic text-ink-3" style={{ paddingLeft: `${8 + (depth + 1) * INDENT}px` }}>
+                vazia
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -52,30 +60,37 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
   const changed = props.changed.has(node.path);
   return (
     <button
-      className={`flex w-full items-center justify-between gap-2 py-1 pr-2 text-left text-[13px] ${
-        active
-          ? "bg-zinc-200/70 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+      className={`relative flex w-full items-start gap-2 rounded-md py-[5px] pr-2 text-left text-[13.5px] ${
+        active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-desk hover:text-ink"
       }`}
-      style={{ paddingLeft: `${20 + depth * 12}px` }}
+      style={{ paddingLeft: `${6 + depth * INDENT}px` }}
       onClick={() => props.onOpen(node.path)}
       title={node.path}
       data-path={node.path}
+      aria-current={active ? "page" : undefined}
     >
-      <span className="truncate">{node.name.replace(/\.md$/i, "")}</span>
-      <span className="flex shrink-0 items-center gap-1.5">
-        {!!node.openComments && (
-          <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-            {node.openComments}
-          </span>
-        )}
-        {changed && <span className="h-2 w-2 rounded-full bg-sky-500" title="Alterado pelo Claude" data-testid="changed-dot" />}
-      </span>
+      {active && <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-accent" aria-hidden="true" />}
+      <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />
+      <span className="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere] line-clamp-2">{displayName(node.name)}</span>
+      {!!node.openComments && (
+        <span
+          className="mt-[2px] shrink-0 rounded-full bg-mark-soft px-1.5 text-2xs font-semibold tabular-nums text-mark-ink"
+          title={`${node.openComments} comentário(s) em aberto`}
+        >
+          {node.openComments}
+        </span>
+      )}
+      {changed && <span className="mt-[6px] h-2 w-2 shrink-0 rounded-full bg-claude" title="Alterado pelo Claude" data-testid="changed-dot" />}
     </button>
   );
 }
 
-function NewItemForm({ kind, modules, onSubmit, onClose }: {
+function NewItemForm({
+  kind,
+  modules,
+  onSubmit,
+  onClose,
+}: {
   kind: "feature" | "module";
   modules: { id: string; label: string }[];
   onSubmit: (prompt: string) => void;
@@ -96,26 +111,44 @@ function NewItemForm({ kind, modules, onSubmit, onClose }: {
   };
 
   return (
-    <div className="space-y-2 border-b border-zinc-200 p-3 dark:border-zinc-800">
-      <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{kind === "feature" ? "Nova feature" : "Novo módulo"}</div>
-      <input className={input} placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} autoFocus onKeyDown={(e) => e.key === "Enter" && submit()} />
-      {kind === "feature" &&
-        (modules.length > 0 ? (
-          <select className={input} value={mod} onChange={(e) => setMod(e.target.value)}>
-            {modules.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input className={input} placeholder="Módulo (ex.: M01)" value={mod} onChange={(e) => setMod(e.target.value)} />
-        ))}
+    <div className="mx-2 mb-2 space-y-2.5 rounded-lg border border-line bg-sheet p-3 shadow-lift">
+      <div className="font-cond text-[15px] font-semibold text-ink">{kind === "feature" ? "Nova feature" : "Novo módulo"}</div>
+      <label className="block space-y-1">
+        <span className="text-xs text-ink-2">Nome</span>
+        <input
+          className={input}
+          placeholder={kind === "feature" ? "Ex.: Aprovar orçamento" : "Ex.: Rede de oficinas"}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+            if (e.key === "Escape") onClose();
+          }}
+        />
+      </label>
+      {kind === "feature" && (
+        <label className="block space-y-1">
+          <span className="text-xs text-ink-2">Módulo</span>
+          {modules.length > 0 ? (
+            <select className={input} value={mod} onChange={(e) => setMod(e.target.value)}>
+              {modules.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input className={input} placeholder="Ex.: M01" value={mod} onChange={(e) => setMod(e.target.value)} />
+          )}
+        </label>
+      )}
+      <p className="text-xs leading-snug text-ink-3">O Claude cria o rascunho a partir do template, e o pedido aparece no chat.</p>
       <div className="flex justify-end gap-2">
         <button className={btn} onClick={onClose}>
           Cancelar
         </button>
-        <button className={btnPrimary} disabled={!valid} onClick={submit}>
+        <button className={btnClaude} disabled={!valid} onClick={submit}>
           Pedir ao Claude
         </button>
       </div>
@@ -128,15 +161,12 @@ export function FileTree(props: Props) {
   const modules = useMemo(() => modulesOf(props.tree), [props.tree]);
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex gap-2 border-b border-zinc-200 p-2 dark:border-zinc-800">
-        <button className={btn} disabled={!props.canCreate} onClick={() => setCreating("feature")} title="O Claude cria o arquivo a partir do template">
-          + Feature
-        </button>
-        <button className={btn} disabled={!props.canCreate} onClick={() => setCreating("module")}>
-          + Módulo
-        </button>
-      </div>
+    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-panel 2xl:w-64">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
+        {props.tree.map((n) => (
+          <Node key={n.path} node={n} depth={0} props={props} />
+        ))}
+      </nav>
       {creating && (
         <NewItemForm
           kind={creating}
@@ -148,11 +178,21 @@ export function FileTree(props: Props) {
           }}
         />
       )}
-      <nav className="flex-1 overflow-y-auto py-2" data-testid="file-tree">
-        {props.tree.map((n) => (
-          <Node key={n.path} node={n} depth={0} props={props} />
-        ))}
-      </nav>
+      <div className="flex gap-1 border-t border-line p-2">
+        <button
+          className={`${btnGhost} flex-1`}
+          disabled={!props.canCreate}
+          onClick={() => setCreating("feature")}
+          title="O Claude cria o rascunho a partir do template"
+        >
+          <IconPlus className="h-3.5 w-3.5" />
+          Feature
+        </button>
+        <button className={`${btnGhost} flex-1`} disabled={!props.canCreate} onClick={() => setCreating("module")}>
+          <IconPlus className="h-3.5 w-3.5" />
+          Módulo
+        </button>
+      </div>
     </aside>
   );
 }

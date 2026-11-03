@@ -10,44 +10,55 @@ type Props = {
 
 export function Header({ project, busy, lastError, connected }: Props) {
   let label = "Pronto";
-  let dot = "bg-emerald-500";
+  let dot = "bg-claude";
   if (!connected) {
     label = "Sem conexão com o servidor";
-    dot = "bg-red-500";
+    dot = "bg-danger";
   } else if (project && !project.claude.enabled) {
     label = "Claude desativado";
-    dot = "bg-zinc-400";
+    dot = "bg-ink-3";
   } else if (busy) {
-    label = "Trabalhando…";
-    dot = "bg-amber-500 animate-pulse";
+    label = "Claude trabalhando";
+    dot = "bg-mark animate-pulse";
   } else if (lastError) {
-    label = "Erro";
-    dot = "bg-red-500";
+    label = "Erro no último pedido";
+    dot = "bg-danger";
   }
 
   return (
-    <header className="flex h-11 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{project?.name ?? "Spec Studio"}</span>
-        {project?.branch && <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500 dark:bg-zinc-800">{project.branch}</span>}
-        <span className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400" title={lastError ?? undefined} data-testid="claude-status">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-line bg-panel px-4">
+      <div className="flex min-w-0 items-baseline gap-3">
+        <span className="font-cond text-[13px] font-medium text-ink-3">Spec Studio</span>
+        <span className="text-line-strong" aria-hidden="true">
+          /
+        </span>
+        <span className="truncate font-cond text-[18px] font-semibold leading-none text-ink" title={project?.projectDir}>
+          {project?.name ?? "…"}
+        </span>
+        {project?.branch && <span className="text-xs text-ink-3">{project.branch}</span>}
+      </div>
+
+      <div className="flex items-center gap-4 text-xs text-ink-2">
+        <span className="flex items-center gap-2" title={lastError ?? undefined} data-testid="claude-status">
           <span className={`h-2 w-2 rounded-full ${dot}`} />
           {label}
         </span>
-      </div>
-      <div className="flex items-center gap-3 text-xs text-zinc-500">
         {project?.claude.mock ? (
           <span
-            className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+            className="rounded-full border border-mark/60 bg-mark-soft px-2.5 py-0.5 font-medium text-mark-ink"
             title="Claude simulado, sem custo. Tire CLAUDE_MOCK=true do .env para usar o Claude de verdade."
             data-testid="mock-badge"
           >
             modo simulado
           </span>
         ) : (
-          project?.claude.enabled && <span>{project.claude.model}</span>
+          project?.claude.enabled && <span className="text-ink-3">{project.claude.model}</span>
         )}
-        {project?.claude.lastCostUsd != null && <span data-testid="cost">custo: {formatCost(project.claude.lastCostUsd)}</span>}
+        {project?.claude.lastCostUsd != null && (
+          <span className="tabular-nums text-ink-3" data-testid="cost" title="Custo do último pedido ao Claude">
+            custo: {formatCost(project.claude.lastCostUsd)}
+          </span>
+        )}
       </div>
     </header>
   );

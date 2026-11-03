@@ -2,7 +2,8 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Anchor, Comment, LiveJob } from "../types";
-import { btn, btnPrimary, formatDate, input, toolLabel } from "../ui";
+import { btn, btnClaude, btnGhost, btnPrimary, formatDate, input, toolLabel } from "../ui";
+import { IconChevron, IconComment } from "./Icons";
 
 type Props = {
   comments: Comment[];
@@ -21,8 +22,43 @@ type Props = {
   onCancelJob: () => void;
 };
 
+const STATUS: Record<Comment["status"], { text: string; bar: string }> = {
+  open: { text: "aberto", bar: "bg-mark" },
+  sent: { text: "com o Claude", bar: "bg-claude" },
+  answered: { text: "respondido", bar: "bg-claude" },
+  resolved: { text: "resolvido", bar: "bg-line-strong" },
+};
+
 function Quote({ text }: { text: string }) {
-  return <blockquote className="line-clamp-3 border-l-2 border-amber-400 pl-2 text-xs italic text-zinc-600 dark:text-zinc-400">"{text}"</blockquote>;
+  return (
+    <blockquote className="line-clamp-3 border-l-2 border-mark pl-2.5 font-serif text-[14px] italic leading-snug text-ink-2">{text}</blockquote>
+  );
+}
+
+function LiveWork({ job, onCancel }: { job: LiveJob; onCancel: () => void }) {
+  return (
+    <div className="space-y-1.5 rounded-md bg-claude-soft px-3 py-2.5" data-testid="comment-live">
+      <div className="flex items-center gap-2 text-xs font-semibold text-claude">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-claude" aria-hidden="true" />
+        Claude trabalhando
+      </div>
+      {job.tools.map((t, i) => (
+        <div key={i} className="truncate text-xs text-ink-2" title={toolLabel(t.tool, t.path)}>
+          {toolLabel(t.tool, t.path)}
+        </div>
+      ))}
+      {job.text && <div className="whitespace-pre-wrap text-[13px] leading-snug text-ink">{job.text}</div>}
+      <button
+        className={`${btnGhost} -ml-2`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onCancel();
+        }}
+      >
+        Cancelar
+      </button>
+    </div>
+  );
 }
 
 function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean }) {
@@ -30,69 +66,59 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
   const [reply, setReply] = useState("");
   const active = props.activeId === c.id;
   const working = props.job?.kind === "comment" && props.job.commentId === c.id;
-  const statusText: Record<Comment["status"], string> = {
-    open: "aberto",
-    sent: "enviado ao Claude",
-    answered: "respondido",
-    resolved: "resolvido",
-  };
+  const st = STATUS[c.status];
 
   return (
     <div
       data-comment-id={c.id}
-      className={`space-y-2 rounded-lg border p-3 text-sm ${
-        active ? "border-amber-400 bg-amber-50/60 dark:border-amber-600 dark:bg-amber-950/30" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-      }`}
+      className={`relative overflow-hidden rounded-lg border bg-sheet py-3 pl-4 pr-3 text-sm ${
+        active ? "border-accent/70 ring-2 ring-accent/15" : "border-line hover:border-line-strong"
+      } ${orphan ? "" : "cursor-pointer"}`}
       onClick={() => !orphan && props.onFocus(c.id)}
     >
-      <div className="flex items-center justify-between text-[11px] text-zinc-500">
-        <span>
-          {c.author} · {formatDate(c.createdAt)}
+      <span className={`absolute inset-y-0 left-0 w-[3px] ${st.bar}`} aria-hidden="true" />
+      <div className="mb-2 flex items-baseline justify-between gap-2 text-xs">
+        <span className="min-w-0 truncate">
+          <span className="font-semibold text-ink">{c.author}</span> <span className="text-ink-3">{formatDate(c.createdAt)}</span>
         </span>
-        <span>{statusText[c.status]}</span>
+        <span className="shrink-0 text-ink-3">{st.text}</span>
       </div>
       <Quote text={c.anchor.quote} />
-      <p className="whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{c.body}</p>
+      <p className="mt-2 whitespace-pre-wrap leading-snug text-ink">{c.body}</p>
 
-      {c.replies.map((r, i) => (
-        <div key={i} className={`rounded-md px-2 py-1.5 text-xs ${r.author === "Claude" ? "bg-violet-50 dark:bg-violet-950/40" : "bg-zinc-50 dark:bg-zinc-800/60"}`}>
-          <div className="mb-0.5 font-semibold text-zinc-700 dark:text-zinc-300">
-            {r.author}
-            {r.commit && <span className="ml-1 font-mono font-normal text-zinc-400">{r.commit}</span>}
-          </div>
-          {r.author === "Claude" ? (
-            <div className="prose prose-sm prose-zinc max-w-none text-xs dark:prose-invert prose-p:my-1 prose-ul:my-1">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.body}</ReactMarkdown>
-            </div>
-          ) : (
-            <div className="whitespace-pre-wrap text-zinc-800 dark:text-zinc-200">{r.body}</div>
-          )}
-        </div>
-      ))}
-
-      {working && props.job && (
-        <div className="space-y-1 rounded-md bg-violet-50 px-2 py-1.5 text-xs dark:bg-violet-950/40" data-testid="comment-live">
-          <div className="font-semibold text-violet-800 dark:text-violet-200">Claude trabalhando…</div>
-          {props.job.tools.map((t, i) => (
-            <div key={i} className="text-zinc-500">
-              {toolLabel(t.tool, t.path)}
+      {c.replies.length > 0 && (
+        <div className="mt-3 space-y-2.5 border-t border-line pt-3">
+          {c.replies.map((r, i) => (
+            <div key={i}>
+              <div className="mb-0.5 flex items-baseline gap-2 text-xs">
+                <span className={`font-semibold ${r.author === "Claude" ? "text-claude" : "text-ink"}`}>{r.author}</span>
+                <span className="text-ink-3">{formatDate(r.createdAt)}</span>
+                {r.commit && (
+                  <span className="font-mono text-2xs text-ink-3" title="Commit com as alterações">
+                    {r.commit}
+                  </span>
+                )}
+              </div>
+              {r.author === "Claude" ? (
+                <div className="md-sm">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.body}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap leading-snug text-ink">{r.body}</div>
+              )}
             </div>
           ))}
-          {props.job.text && <div className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">{props.job.text}</div>}
-          <button
-            className={btn}
-            onClick={(e) => {
-              e.stopPropagation();
-              props.onCancelJob();
-            }}
-          >
-            Cancelar
-          </button>
+        </div>
+      )}
+
+      {working && props.job && (
+        <div className="mt-3">
+          <LiveWork job={props.job} onCancel={props.onCancelJob} />
         </div>
       )}
 
       {replying && (
-        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
           <textarea className={input} rows={2} value={reply} onChange={(e) => setReply(e.target.value)} autoFocus placeholder="Sua resposta" />
           <div className="flex justify-end gap-2">
             <button className={btn} onClick={() => setReplying(false)}>
@@ -113,27 +139,27 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
         </div>
       )}
 
-      {!replying && (
-        <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {!replying && !working && (
+        <div className="mt-3 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {c.status !== "resolved" && (
             <button
-              className={btnPrimary}
+              className={`${btnClaude} mr-1`}
               disabled={props.busy || !props.claudeEnabled}
-              title={!props.claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : undefined}
+              title={!props.claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz o que o comentário pede"}
               onClick={() => void props.onSend(c.id)}
             >
               Enviar para o Claude
             </button>
           )}
-          <button className={btn} onClick={() => setReplying(true)}>
+          <button className={btnGhost} onClick={() => setReplying(true)}>
             Responder
           </button>
           {c.status === "resolved" ? (
-            <button className={btn} onClick={() => void props.onSetStatus(c.id, "open")}>
+            <button className={btnGhost} onClick={() => void props.onSetStatus(c.id, "open")}>
               Reabrir
             </button>
           ) : (
-            <button className={btn} disabled={c.status === "sent"} onClick={() => void props.onSetStatus(c.id, "resolved")}>
+            <button className={btnGhost} disabled={c.status === "sent"} onClick={() => void props.onSetStatus(c.id, "resolved")}>
               Resolver
             </button>
           )}
@@ -154,8 +180,8 @@ function NewComment({ anchor, onCreate, onCancel }: { anchor: Anchor; onCreate: 
     if (ok) setBody("");
   };
   return (
-    <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/30" data-testid="new-comment">
-      <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Novo comentário</div>
+    <div className="space-y-2.5 rounded-lg border border-accent/60 bg-sheet p-3 shadow-lift ring-2 ring-accent/10" data-testid="new-comment">
+      <div className="font-cond text-[15px] font-semibold text-ink">Novo comentário</div>
       <Quote text={anchor.quote} />
       <textarea
         className={input}
@@ -166,29 +192,49 @@ function NewComment({ anchor, onCreate, onCancel }: { anchor: Anchor; onCreate: 
         placeholder="O que precisa mudar ou ser esclarecido?"
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit();
+          if (e.key === "Escape") onCancel();
         }}
       />
-      <div className="flex justify-end gap-2">
-        <button className={btn} onClick={onCancel}>
-          Cancelar
-        </button>
-        <button className={btnPrimary} disabled={!body.trim() || saving} onClick={() => void submit()}>
-          Comentar
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-2xs text-ink-3">Ctrl+Enter comenta</span>
+        <div className="flex gap-2">
+          <button className={btn} onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className={btnPrimary} disabled={!body.trim() || saving} onClick={() => void submit()}>
+            Comentar
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function Section({ title, items, props, orphan, collapsed }: { title: string; items: Comment[]; props: Props; orphan?: boolean; collapsed?: boolean }) {
+function Section({
+  title,
+  hint,
+  items,
+  props,
+  orphan,
+  collapsed,
+}: {
+  title: string;
+  hint?: string;
+  items: Comment[];
+  props: Props;
+  orphan?: boolean;
+  collapsed?: boolean;
+}) {
   const [open, setOpen] = useState(!collapsed);
   if (items.length === 0) return null;
   return (
     <section className="space-y-2">
-      <button className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" onClick={() => setOpen(!open)}>
-        {open ? "▾" : "▸"} {title} ({items.length})
+      <button className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${open ? "rotate-90" : ""}`} />
+        {title}
+        <span className="font-normal tabular-nums text-ink-3">{items.length}</span>
       </button>
-      {orphan && open && <p className="text-[11px] text-zinc-500">O trecho destes comentários não existe mais no texto atual.</p>}
+      {hint && open && <p className="text-xs text-ink-3">{hint}</p>}
       {open && items.map((c) => <Card key={c.id} c={c} props={props} orphan={orphan} />)}
     </section>
   );
@@ -203,14 +249,18 @@ export function CommentsPanel(props: Props) {
   const resolved = comments.filter((c) => c.status === "resolved");
 
   return (
-    <div className="space-y-4 p-3" data-testid="comments-panel">
+    <div className="space-y-5 p-3" data-testid="comments-panel">
       {props.pending && <NewComment anchor={props.pending} onCreate={props.onCreate} onCancel={props.onCancelPending} />}
       {comments.length === 0 && !props.pending && (
-        <p className="text-sm text-zinc-500">Selecione um trecho do documento e clique em Comentar.</p>
+        <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <IconComment className="h-6 w-6 text-ink-3" />
+          <p className="text-sm text-ink-2">Nenhum comentário neste arquivo.</p>
+          <p className="text-xs leading-snug text-ink-3">Selecione um trecho do documento e clique em Comentar.</p>
+        </div>
       )}
       <Section title="Abertos" items={open} props={props} />
       <Section title="Respondidos" items={answered} props={props} />
-      <Section title="Órfãos" items={orphans} props={props} orphan />
+      <Section title="Órfãos" hint="O trecho destes comentários não existe mais no texto atual." items={orphans} props={props} orphan />
       <Section title="Resolvidos" items={resolved} props={props} collapsed />
     </div>
   );

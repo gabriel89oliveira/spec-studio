@@ -13,6 +13,8 @@ import {
   type TextMap,
 } from "../anchors";
 import type { Anchor, Comment } from "../types";
+import { btnPrimary } from "../ui";
+import { IconComment } from "./Icons";
 
 type Props = {
   content: string;
@@ -23,6 +25,17 @@ type Props = {
   /** Ids dos comentários cujo trecho foi encontrado no texto atual. */
   onAnchorsResolved: (found: Set<string>) => void;
 };
+
+/** A folha de papel sobre a mesa milimetrada. */
+export function Sheet({ children, wide, flush }: { children: React.ReactNode; wide?: boolean; flush?: boolean }) {
+  return (
+    <div className={`mx-auto px-4 py-6 xl:px-8 xl:py-8 2xl:px-12 2xl:py-10 ${wide ? "max-w-[1120px]" : "max-w-[800px]"}`}>
+      <article className={`relative rounded-[3px] bg-sheet shadow-sheet ${flush ? "" : "px-8 py-10 xl:px-12 xl:py-12 2xl:px-16 2xl:py-14"}`}>
+        {children}
+      </article>
+    </div>
+  );
+}
 
 const Markdown = memo(function Markdown({ content }: { content: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
@@ -90,7 +103,7 @@ export function DocView({ content, comments, activeId, onComment, onFocusComment
     }
     const rect = range.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
-    setPending({ anchor, top: rect.bottom - box.top + 6, left: Math.max(8, rect.left - box.left + rect.width / 2 - 45) });
+    setPending({ anchor, top: rect.bottom - box.top + 8, left: Math.max(0, rect.left - box.left + rect.width / 2 - 52) });
   }, []);
 
   const onClick = useCallback(
@@ -114,30 +127,27 @@ export function DocView({ content, comments, activeId, onComment, onFocusComment
   );
 
   return (
-    <div ref={wrapRef} className="relative mx-auto max-w-3xl px-8 py-6">
-      <div
-        ref={bodyRef}
-        onMouseUp={onMouseUp}
-        onClick={onClick}
-        data-testid="doc-body"
-        className="prose prose-zinc max-w-none dark:prose-invert prose-headings:scroll-mt-4 prose-table:text-sm prose-pre:bg-zinc-100 prose-pre:text-zinc-800 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-200"
-      >
-        <Markdown content={content} />
+    <Sheet>
+      <div ref={wrapRef} className="relative">
+        <div ref={bodyRef} onMouseUp={onMouseUp} onClick={onClick} data-testid="doc-body" className="md">
+          <Markdown content={content} />
+        </div>
+        {pending && (
+          <button
+            className={`${btnPrimary} absolute z-10 shadow-lift`}
+            style={{ top: pending.top, left: pending.left }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onComment(pending.anchor);
+              setPending(null);
+              window.getSelection()?.removeAllRanges();
+            }}
+          >
+            <IconComment className="h-3.5 w-3.5" />
+            Comentar
+          </button>
+        )}
       </div>
-      {pending && (
-        <button
-          className="absolute z-10 rounded-md bg-zinc-900 px-3 py-1 text-xs font-medium text-white shadow-lg hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-          style={{ top: pending.top, left: pending.left }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            onComment(pending.anchor);
-            setPending(null);
-            window.getSelection()?.removeAllRanges();
-          }}
-        >
-          Comentar
-        </button>
-      )}
-    </div>
+    </Sheet>
   );
 }

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, storage } from "./api";
 import { ChatPanel } from "./components/ChatPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { DiffView } from "./components/DiffView";
-import { DocView } from "./components/DocView";
+import { DocView, Sheet } from "./components/DocView";
+import { IconClose } from "./components/Icons";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
 import { Header } from "./components/Header";
@@ -263,8 +264,10 @@ export default function App() {
   // ---------------------------------------------------------------- interface
   const tab = (id: Mode, label: string) => (
     <button
-      className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-        mode === id ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+      role="tab"
+      aria-selected={mode === id}
+      className={`h-7 rounded-[5px] px-3 text-xs font-medium transition-colors disabled:opacity-45 ${
+        mode === id ? "bg-sheet text-ink shadow-[0_1px_2px_rgb(var(--ink)/0.14)]" : "text-ink-2 hover:text-ink"
       }`}
       disabled={!live.doc}
       onClick={() => {
@@ -276,21 +279,41 @@ export default function App() {
     </button>
   );
 
+  const crumbs = openPath?.split("/") ?? [];
+  const openCount = comments.filter((c) => c.status !== "resolved").length;
+
   return (
-    <div className="flex h-screen flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="flex h-screen flex-col bg-panel text-ink">
       <Header project={project} busy={busy} lastError={lastError} connected={connected} />
       <div className="flex min-h-0 flex-1">
-        <FileTree tree={tree} openPath={openPath} changed={changed} canCreate={claudeEnabled && !busy} onOpen={openFile} onCreate={(p) => {
-          setRightTab("chat");
-          void sendChat(p);
-        }} />
+        <FileTree
+          tree={tree}
+          openPath={openPath}
+          changed={changed}
+          canCreate={claudeEnabled && !busy}
+          onOpen={openFile}
+          onCreate={(p) => {
+            setRightTab("chat");
+            void sendChat(p);
+          }}
+        />
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-zinc-200 px-4 dark:border-zinc-800">
-            <span className="truncate font-mono text-xs text-zinc-500" data-testid="open-path">
-              {openPath ?? "Nenhum arquivo aberto"}
-            </span>
-            <div className="flex gap-1">
+          <div className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-line bg-panel px-4">
+            <nav aria-label="Caminho do arquivo" className="flex min-w-0 items-center gap-1.5 text-xs text-ink-3" data-testid="open-path">
+              {crumbs.length === 0 && "Nenhum arquivo aberto"}
+              {crumbs.map((c, i) => (
+                <Fragment key={i}>
+                  {i > 0 && (
+                    <span className="text-line-strong" aria-hidden="true">
+                      /
+                    </span>
+                  )}
+                  <span className={i === crumbs.length - 1 ? "truncate font-medium text-ink" : "shrink-0"}>{c}</span>
+                </Fragment>
+              ))}
+            </nav>
+            <div role="tablist" aria-label="Modo" className="flex shrink-0 gap-0.5 rounded-md bg-desk p-0.5">
               {tab("view", "Ler")}
               {tab("edit", "Editar")}
               {tab("history", "Histórico")}
@@ -298,28 +321,39 @@ export default function App() {
           </div>
 
           {notice && (
-            <div className="flex items-start gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200" data-testid="notice">
-              <span className="flex-1 whitespace-pre-wrap">{notice}</span>
-              <button onClick={() => setNotice(null)} aria-label="Fechar">
-                ×
+            <div className="flex items-start gap-3 border-b border-danger/25 bg-danger-soft px-4 py-2.5 text-xs text-danger" data-testid="notice" role="alert">
+              <span className="flex-1 whitespace-pre-wrap leading-snug">{notice}</span>
+              <button className="shrink-0 rounded p-0.5 hover:bg-danger/10" onClick={() => setNotice(null)} aria-label="Fechar aviso">
+                <IconClose className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
           {updateBanner && (
-            <div className="flex items-center gap-2 border-b border-sky-200 bg-sky-50 px-4 py-2 text-xs text-sky-900 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-200" data-testid="update-banner">
-              <span className="flex-1">{updateBanner}</span>
+            <div
+              className={`flex items-center gap-3 border-b px-4 py-2 text-xs ${
+                live.update?.source === "claude" ? "border-claude/25 bg-claude-soft text-claude" : "border-accent/25 bg-accent-soft text-accent"
+              }`}
+              data-testid="update-banner"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+              <span className="flex-1 font-medium">{updateBanner}</span>
               <button className={btn} onClick={() => setMode("changes")}>
                 Ver alterações
               </button>
-              <button onClick={live.clearUpdate} aria-label="Fechar">
-                ×
+              <button className="shrink-0 rounded p-0.5 hover:bg-ink/5" onClick={live.clearUpdate} aria-label="Fechar aviso">
+                <IconClose className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {live.error && <p className="p-6 text-sm text-red-600">{live.error}</p>}
-            {!live.doc && !live.error && openPath && <p className="p-6 text-sm text-zinc-500">Carregando…</p>}
+          <div className="desk-grid min-h-0 flex-1 overflow-y-auto">
+            {live.error && (
+              <Sheet>
+                <p className="text-sm text-danger">{live.error}</p>
+              </Sheet>
+            )}
+            {!live.doc && !live.error && openPath && <p className="p-8 text-center text-sm text-ink-3">Carregando…</p>}
+            {!openPath && <p className="p-8 text-center text-sm text-ink-3">Escolha um arquivo à esquerda.</p>}
             {live.doc && mode === "view" && (
               <DocView
                 content={live.doc.content}
@@ -349,9 +383,12 @@ export default function App() {
               <HistoryPanel path={openPath} refreshKey={live.doc.hash} disabled={busy} onError={onHistoryError} />
             )}
             {mode === "changes" && live.update && (
-              <div className="mx-auto max-w-4xl space-y-3 p-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">O que mudou neste arquivo</span>
+              <Sheet wide>
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="font-cond text-[21px] font-semibold text-ink">O que mudou neste arquivo</div>
+                    <div className="text-xs text-ink-3">Comparação entre o que estava na tela e a versão nova.</div>
+                  </div>
                   <button
                     className={btn}
                     onClick={() => {
@@ -363,23 +400,28 @@ export default function App() {
                   </button>
                 </div>
                 <DiffView before={live.update.before} after={live.update.after} />
-              </div>
+              </Sheet>
             )}
           </div>
         </main>
 
-        <aside className="flex w-[380px] shrink-0 flex-col border-l border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex h-10 shrink-0 items-center gap-1 border-b border-zinc-200 px-2 dark:border-zinc-800">
+        <aside className="flex w-[360px] shrink-0 flex-col border-l border-line bg-panel 2xl:w-[380px]">
+          <div role="tablist" aria-label="Painel" className="flex h-11 shrink-0 items-end gap-5 border-b border-line px-4">
             {(["comments", "chat"] as const).map((t) => (
               <button
                 key={t}
-                className={`rounded-md px-3 py-1 text-xs font-medium ${
-                  rightTab === t ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                role="tab"
+                aria-selected={rightTab === t}
+                className={`-mb-px flex items-center gap-1.5 border-b-2 pb-2.5 text-[13px] font-medium ${
+                  rightTab === t ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink"
                 }`}
                 onClick={() => setRightTab(t)}
               >
-                {t === "comments" ? `Comentários${comments.filter((c) => c.status !== "resolved").length ? ` (${comments.filter((c) => c.status !== "resolved").length})` : ""}` : "Chat"}
-                {t === "chat" && job?.kind === "chat" && <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
+                {t === "comments" ? "Comentários" : "Chat"}
+                {t === "comments" && openCount > 0 && (
+                  <span className="rounded-full bg-mark-soft px-1.5 text-2xs font-semibold tabular-nums text-mark-ink">{openCount}</span>
+                )}
+                {t === "chat" && job?.kind === "chat" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-claude" aria-label="Claude trabalhando" />}
               </button>
             ))}
           </div>

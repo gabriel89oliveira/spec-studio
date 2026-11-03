@@ -44,9 +44,9 @@ function toBlocks(lines: Line[]): Block[] {
 }
 
 const STYLE: Record<Line["kind"], string> = {
-  add: "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200",
-  del: "bg-red-50 text-red-900 line-through decoration-red-300/60 dark:bg-red-950/60 dark:text-red-200",
-  same: "text-zinc-600 dark:text-zinc-400",
+  add: "bg-add-soft text-add",
+  del: "bg-del-soft text-del line-through decoration-del/40",
+  same: "text-ink-2",
 };
 const SIGN: Record<Line["kind"], string> = { add: "+", del: "−", same: " " };
 
@@ -54,8 +54,8 @@ function Fold({ lines }: { lines: Line[] }) {
   const [open, setOpen] = useState(false);
   if (open) return <Lines lines={lines} />;
   return (
-    <button className="w-full bg-zinc-50 py-0.5 text-center text-[11px] text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800" onClick={() => setOpen(true)}>
-      … {lines.length} linhas sem mudança …
+    <button className="w-full border-y border-dashed border-line bg-desk/60 py-1 text-center font-sans text-2xs text-ink-3 hover:text-ink" onClick={() => setOpen(true)}>
+      {lines.length} linhas sem mudança (mostrar)
     </button>
   );
 }
@@ -64,8 +64,8 @@ function Lines({ lines }: { lines: Line[] }) {
   return (
     <>
       {lines.map((l, i) => (
-        <div key={i} className={`flex whitespace-pre-wrap break-words px-2 ${STYLE[l.kind]}`}>
-          <span className="w-4 shrink-0 select-none opacity-60">{SIGN[l.kind]}</span>
+        <div key={i} className={`flex whitespace-pre-wrap break-words px-3 ${STYLE[l.kind]}`}>
+          <span className="w-5 shrink-0 select-none opacity-60">{SIGN[l.kind]}</span>
           <span>{l.text || " "}</span>
         </div>
       ))}
@@ -76,9 +76,9 @@ function Lines({ lines }: { lines: Line[] }) {
 export function DiffView({ before, after }: { before: string; after: string }) {
   const blocks = useMemo(() => toBlocks(toLines(before, after)), [before, after]);
   const changed = blocks.some((b) => b.kind === "lines" && b.lines.some((l) => l.kind !== "same"));
-  if (!changed) return <p className="p-4 text-sm text-zinc-500">Nenhuma diferença neste arquivo.</p>;
+  if (!changed) return <p className="text-sm text-ink-3">Nenhuma diferença neste arquivo.</p>;
   return (
-    <div className="overflow-hidden rounded-md border border-zinc-200 font-mono text-xs leading-5 dark:border-zinc-800" data-testid="diff">
+    <div className="overflow-hidden rounded-md border border-line bg-sheet py-1 font-mono text-[12.5px] leading-[1.7]" data-testid="diff">
       {blocks.map((b, i) => (b.kind === "fold" ? <Fold key={i} lines={b.lines} /> : <Lines key={i} lines={b.lines} />))}
     </div>
   );
