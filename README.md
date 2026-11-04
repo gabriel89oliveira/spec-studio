@@ -30,6 +30,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 USER_NAME=Gabriel
 ```
 
+`PROJECT_DIR` é opcional. Clique no nome do projeto no cabeçalho para abrir outra pasta, escolher um projeto recente ou criar um projeto novo a partir do kit. O último projeto aberto pela tela é reaberto ao reiniciar (a lista de recentes fica em `~/.spec-studio/state.json`).
+
 Para parar, use Ctrl+C no terminal.
 
 ## Testar sem gastar créditos
@@ -66,7 +68,7 @@ Os comentários ficam em `PROJECT_DIR/.spec-studio/comments/` (versionados no Gi
 
 Pontos que a especificação não definia, ou onde houve um desvio deliberado:
 
-1. **Claude opcional.** Sem `ANTHROPIC_API_KEY`, o servidor inicia com o Claude desativado, em vez de encerrar, para que dê para navegar, editar e comentar antes de ter a chave. `PROJECT_DIR` continua obrigatório.
+1. **Claude opcional.** Sem `ANTHROPIC_API_KEY`, o servidor inicia com o Claude desativado, em vez de encerrar, para que dê para navegar, editar e comentar antes de ter a chave. `PROJECT_DIR` é opcional: sem projeto, a tela pede para escolher ou criar um.
 2. **zod 4**, exigido pelo Agent SDK.
 3. **Commits de comentários.** Criar, editar, resolver, reabrir e responder geram um commit `comentários: <arquivo> (...)`. A mudança para "enviado ao Claude" entra no commit do próprio Claude, e a resposta dele gera mais um commit com o hash referenciado.
 4. **Trabalho cancelado ou com erro.** Se o Claude já tiver alterado arquivos, essas alterações são commitadas como `claude (interrompido): ...`, para poderem ser desfeitas pelo Histórico.

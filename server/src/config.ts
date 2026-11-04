@@ -20,10 +20,7 @@ export class ConfigError extends Error {}
 const emptyToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 
 const schema = z.object({
-  PROJECT_DIR: z.preprocess(
-    emptyToUndefined,
-    z.string({ error: "PROJECT_DIR não definido: informe a pasta do projeto no .env" }),
-  ),
+  PROJECT_DIR: z.preprocess(emptyToUndefined, z.string().optional()),
   ANTHROPIC_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   CLAUDE_MODEL: z.preprocess(emptyToUndefined, z.string().default("sonnet")),
   USER_NAME: z.preprocess(emptyToUndefined, z.string().default("Usuário")),
@@ -47,24 +44,28 @@ function expandHome(p: string): string {
   return p;
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+/** Confere uma pasta de projeto e devolve o caminho real. */
+export function checkProjectDir(input: string): string {
+  const dir = path.resolve(expandHome(input.trim()));
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    throw new ConfigError(`A pasta não existe ou não é uma pasta: ${dir}`);
+  }
+  if (!fs.existsSync(path.join(dir, "CLAUDE.md"))) {
+    throw new ConfigError(`A pasta não tem CLAUDE.md na raiz (não parece um projeto do Spec Studio): ${dir}`);
+  }
+  return fs.realpathSync.native(dir);
+}
+
+/** Configuração sem a pasta do projeto, que pode ser escolhida na tela. */
+export function loadBaseConfig(env: NodeJS.ProcessEnv = process.env): Omit<Config, "projectDir"> & { envProjectDir?: string } {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`);
     throw new ConfigError(`Configuração inválida no .env:\n${lines.join("\n")}`);
   }
   const v = parsed.data;
-
-  const dir = path.resolve(expandHome(v.PROJECT_DIR.trim()));
-  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-    throw new ConfigError(`PROJECT_DIR não existe ou não é uma pasta: ${dir}`);
-  }
-  if (!fs.existsSync(path.join(dir, "CLAUDE.md"))) {
-    throw new ConfigError(`PROJECT_DIR não tem CLAUDE.md na raiz: ${dir}`);
-  }
-
   return {
-    projectDir: fs.realpathSync.native(dir),
+    envProjectDir: v.PROJECT_DIR?.trim() || undefined,
     apiKey: v.ANTHROPIC_API_KEY?.trim() || undefined,
     model: v.CLAUDE_MODEL,
     userName: v.USER_NAME,
@@ -72,4 +73,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     autoCommit: v.AUTO_COMMIT === "true",
     mock: v.CLAUDE_MOCK === "true",
   };
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const { envProjectDir, ...base } = loadBaseConfig(env);
+  if (!envProjectDir) throw new ConfigError("PROJECT_DIR não definido: informe a pasta do projeto no .env");
+  let projectDir: string;
+  try {
+    projectDir = checkProjectDir(envProjectDir);
+  } catch (e) {
+    throw new ConfigError((e as Error).message.replace("A pasta", "PROJECT_DIR"));
+  }
+  return { ...base, projectDir };
 }

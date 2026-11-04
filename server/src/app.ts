@@ -43,12 +43,12 @@ const anchorSchema = z.object({
   suffix: z.string().max(200).default(""),
 });
 
-export type ServerOptions = { queryFn?: QueryFn; watch?: boolean };
+export type ServerOptions = { queryFn?: QueryFn; watch?: boolean; bus?: EventBus };
 
 export async function createServer(config: Config, opts: ServerOptions = {}) {
   const root = config.projectDir;
   const git = await GitService.open(root, config.userName);
-  const bus = new EventBus();
+  const bus = opts.bus ?? new EventBus();
   const tracker = new SourceTracker();
   const comments = new CommentStore(root);
   const sessions = new SessionStore(root);

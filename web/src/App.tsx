@@ -15,7 +15,8 @@ import { Header } from "./components/Header";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { useEvents } from "./hooks/useEvents";
 import { useLiveFile } from "./hooks/useLiveFile";
-import type { Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode } from "./types";
+import type { Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode, WorkspaceInfo } from "./types";
+import { ProjectPicker } from "./components/ProjectPicker";
 import { btn } from "./ui";
 
 type Mode = "view" | "edit" | "history" | "changes";
@@ -36,7 +37,7 @@ function sameSet(a: Set<string>, b: Set<string>): boolean {
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export default function App() {
+export default function App({ workspace }: { workspace: WorkspaceInfo }) {
   const [project, setProject] = useState<Project | null>(null);
   const [connected, setConnected] = useState(true);
   const [tree, setTree] = useState<TreeNode[]>([]);
@@ -56,6 +57,7 @@ export default function App() {
   const [editorDirty, setEditorDirty] = useState(false);
   const [screen, setScreen] = useState<Screen | null>(null);
   const [packFor, setPackFor] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
   const [badges, setBadges] = useState({ issues: 0, decisions: 0 });
   const [rev, setRev] = useState(0);
   const live = useLiveFile(openPath);
@@ -349,7 +351,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-[rgb(var(--canvas))] text-ink">
-      <Header project={project} busy={busy} lastError={lastError} connected={connected} />
+      <Header project={project} busy={busy} lastError={lastError} connected={connected} onSwitch={() => setSwitching(true)} />
       <div className="flex min-h-0 flex-1 gap-3 p-3">
         <FileTree
           tree={tree}
@@ -576,6 +578,7 @@ export default function App() {
           </div>
         </aside>
       </div>
+      {switching && <ProjectPicker info={workspace} onClose={() => setSwitching(false)} />}
       {packFor && <DevPackModal featureId={packFor} onClose={() => setPackFor(null)} />}
     </div>
   );

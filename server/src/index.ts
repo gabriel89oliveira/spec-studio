@@ -64,10 +64,10 @@ async function main(): Promise<void> {
   log(`Lendo ${envPath} (${fs.existsSync(envPath) ? "encontrado" : "NÃO encontrado"})`);
   loadEnv({ path: envPath, quiet: true });
 
-  const { ConfigError, loadConfig } = await import("./config.js");
+  const { ConfigError, loadBaseConfig } = await import("./config.js");
   let config;
   try {
-    config = loadConfig();
+    config = loadBaseConfig();
   } catch (err) {
     if (err instanceof ConfigError) {
       log(err.message);
@@ -76,16 +76,18 @@ async function main(): Promise<void> {
     }
     throw err;
   }
-  log(`Projeto: ${config.projectDir}`);
 
   log("Carregando módulos do servidor…");
-  const { createServer } = await import("./app.js");
+  const { Workspace } = await import("./workspace.js");
+  const { envProjectDir, ...base } = config;
+  const ws = new Workspace(base);
 
   log("Abrindo o repositório Git do projeto…");
-  const server = await createServer(config);
-  log("Git e observador de arquivos prontos");
+  const startError = await ws.start(envProjectDir);
+  if (startError) log(`${startError.replace("A pasta", "PROJECT_DIR")}. Escolha o projeto na tela.`);
+  log(ws.currentDir ? `Projeto: ${ws.currentDir}` : "Nenhum projeto aberto: escolha ou crie um na tela");
 
-  const httpServer = server.app.listen(config.port, "127.0.0.1", () => {
+  const httpServer = ws.app().listen(config.port, "127.0.0.1", () => {
     log(`Servidor em http://127.0.0.1:${config.port}`);
     log(
       `Claude: ${
@@ -109,7 +111,7 @@ async function main(): Promise<void> {
   });
 
   const shutdown = async () => {
-    await server.close();
+    await ws.close();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);

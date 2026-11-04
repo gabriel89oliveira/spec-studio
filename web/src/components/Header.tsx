@@ -6,9 +6,10 @@ type Props = {
   busy: boolean;
   lastError: string | null;
   connected: boolean;
+  onSwitch: () => void;
 };
 
-export function Header({ project, busy, lastError, connected }: Props) {
+export function Header({ project, busy, lastError, connected, onSwitch }: Props) {
   let label = "Pronto";
   let dot = "bg-claude";
   if (!connected) {
@@ -32,9 +33,18 @@ export function Header({ project, busy, lastError, connected }: Props) {
         <span className="text-line-strong" aria-hidden="true">
           /
         </span>
-        <span className="truncate text-[16px] font-semibold leading-none text-ink" title={project?.projectDir}>
-          {project?.name ?? "…"}
-        </span>
+        <button
+          className="flex min-w-0 items-center gap-1.5 self-center rounded-lg px-2 py-1 -mx-2 text-[16px] font-semibold leading-none text-ink hover:bg-wash"
+          title={`${project?.projectDir ?? ""}\nClique para trocar de projeto`}
+          onClick={onSwitch}
+          aria-label="Trocar de projeto"
+          data-testid="switch-project"
+        >
+          <span className="truncate">{project?.name ?? "…"}</span>
+          <svg viewBox="0 0 12 12" className="h-3 w-3 shrink-0 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 4.5l3 3 3-3" />
+          </svg>
+        </button>
         {project?.branch && <span className="text-xs text-ink-3">{project.branch}</span>}
       </div>
 

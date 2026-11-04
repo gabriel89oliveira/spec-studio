@@ -139,3 +139,7 @@ export type Overview = {
 };
 export type DevPack = { title: string; markdown: string; warnings: string[]; testPlan: string };
 export type Screen = "overview" | "issues" | "decisions";
+
+export type WsEntry = { path: string; name: string };
+export type WorkspaceInfo = { current: string | null; name: string | null; recent: WsEntry[]; home: string; sep: string };
+export type Browse = { path: string; parent: string | null; dirs: WsEntry[]; isProject: boolean; sep: string };

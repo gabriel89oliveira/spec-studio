@@ -1,4 +1,4 @@
-import type { Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
+import type { Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -46,6 +46,11 @@ export const api = {
   file: (path: string) => req<FileDoc>("GET", `/api/file?path=${q(path)}`),
   saveFile: (path: string, content: string, baseHash: string) =>
     req<{ path: string; hash: string; commit: string | null }>("PUT", "/api/file", { path, content, baseHash }),
+
+  workspace: () => req<WorkspaceInfo>("GET", "/api/workspace"),
+  browse: (path?: string) => req<Browse>("GET", `/api/workspace/browse${path ? `?path=${q(path)}` : ""}`),
+  openProject: (path: string) => req<WorkspaceInfo>("POST", "/api/workspace/open", { path }),
+  newProject: (parent: string, name: string) => req<WorkspaceInfo>("POST", "/api/workspace/new", { parent, name }),
 
   issues: () => req<Issue[]>("GET", "/api/issues"),
   overview: () => req<Overview>("GET", "/api/overview"),
