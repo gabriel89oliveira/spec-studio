@@ -116,7 +116,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
           <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${hasFeats && featOpen ? "rotate-90" : ""}`} />
         </span>
       ) : null}
-      <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />
+      {!feats && <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />}
       <span className="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere] line-clamp-2">{displayName(node.name)}</span>
       {!!node.openComments && (
         <span
