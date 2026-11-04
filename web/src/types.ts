@@ -10,7 +10,18 @@ export type TreeNode = {
   features?: TreeNode[];
 };
 
-export type FileDoc = { path: string; content: string; hash: string };
+export type GuideMissing = { id: string; label: string; ask: string; section?: string };
+export type Guide = {
+  kind: "feature" | "module";
+  steps: string[];
+  reached: number;
+  current: string | null;
+  missing: GuideMissing[];
+  doubts: number;
+  status?: string;
+};
+
+export type FileDoc = { path: string; content: string; hash: string; guide?: Guide | null };
 
 export type Anchor = { quote: string; prefix: string; suffix: string };
 export type Reply = { author: string; body: string; createdAt: string; commit?: string };

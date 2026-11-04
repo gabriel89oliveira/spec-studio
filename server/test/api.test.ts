@@ -436,6 +436,32 @@ describe("Modo simulado (CLAUDE_MOCK=true)", () => {
     expect(fs.readFileSync(path.join(dir, "docs", "modulos", "M01-rede-de-oficinas.md"), "utf8")).toContain("# M01 — Rede de oficinas");
   });
 
+  it("entrevista guiada: cria o esqueleto, faz uma pergunta por vez e grava cada resposta", async () => {
+    const { api, dir, srv } = await mockSetup();
+    const tpl = path.join(dir, "docs", "_templates", "feature.md");
+    fs.writeFileSync(tpl, "# F00 — [Nome da feature]\n\n| Campo | Valor |\n|---|---|\n| Módulo | [M00] |\n| Etapa | Ideia |\n\n## Objetivo\n\n## Quem usa\n");
+    const start = await api.post("/api/chat").send({ message: 'Crie a feature "Aprovar orçamento" no módulo M01 a partir de docs/_templates/feature.md e inicie a entrevista da etapa Ideia.' }).expect(202);
+    await srv.jobs.idle;
+    const rel = "docs/features/F02-aprovar-orcamento.md";
+    const file = () => fs.readFileSync(path.join(dir, rel), "utf8");
+    expect(file()).not.toContain("[M00]");
+    let g = (await api.get("/api/file").query({ path: rel })).body.guide;
+    expect(g).toMatchObject({ current: "Ideia", reached: 0 });
+    expect(g.missing.map((x: { id: string }) => x.id)).toEqual(["objetivo", "quem-usa"]);
+
+    const sessionId = start.body.sessionId;
+    await api.post("/api/chat").send({ sessionId, message: "Gestor aprova ou recusa orçamentos de oficinas." }).expect(202);
+    await srv.jobs.idle;
+    expect(file()).toMatch(/## Objetivo\n\nGestor aprova ou recusa/);
+    await api.post("/api/chat").send({ sessionId, message: "Gestor de frota" }).expect(202);
+    await srv.jobs.idle;
+    expect(file()).toMatch(/## Quem usa\n\n- Gestor de frota/);
+    g = (await api.get("/api/file").query({ path: rel })).body.guide;
+    expect(g).toMatchObject({ reached: 1, current: "Entendida" });
+    const chat = (await api.get(`/api/chat/sessions/${sessionId}`)).body;
+    expect(JSON.stringify(chat.messages)).toContain("etapa **Ideia** completa");
+  });
+
   it("pode ser cancelado", async () => {
     const { api, srv } = await mockSetup();
     const events: { event: EventName; data: any }[] = [];

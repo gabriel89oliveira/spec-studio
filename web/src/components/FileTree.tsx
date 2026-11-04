@@ -165,8 +165,8 @@ function NewItemForm({
     const n = name.trim();
     onSubmit(
       kind === "feature"
-        ? `Crie o rascunho da feature "${n}" no módulo ${mod.trim()} a partir de docs/_templates/feature.md, seguindo o CLAUDE.md.`
-        : `Crie o rascunho do módulo "${n}" a partir de docs/_templates/modulo.md, seguindo o CLAUDE.md, e inclua-o no mapa de módulos do Conceito.`,
+        ? `Crie a feature "${n}" no módulo ${mod.trim()} a partir de docs/_templates/feature.md e inicie a entrevista da etapa Ideia, seguindo a seção "Entrevista guiada" do CLAUDE.md.`
+        : `Crie o módulo "${n}" a partir de docs/_templates/modulo.md e inicie a entrevista da etapa Ideia, seguindo a seção "Entrevista guiada" do CLAUDE.md.`,
     );
   };
 
@@ -203,7 +203,7 @@ function NewItemForm({
           )}
         </label>
       )}
-      <p className="text-xs leading-snug text-ink-3">O Claude cria o rascunho a partir do template, e o pedido aparece no chat.</p>
+      <p className="text-xs leading-snug text-ink-3">O Claude cria o arquivo e já começa a entrevista no chat, uma pergunta por vez.</p>
       <div className="flex justify-end gap-2">
         <button className={btn} onClick={onClose}>
           Cancelar
@@ -244,7 +244,7 @@ export function FileTree(props: Props) {
           className={`${btnGhost} flex-1`}
           disabled={!props.canCreate}
           onClick={() => setCreating("feature")}
-          title="O Claude cria o rascunho a partir do template"
+          title="O Claude cria o arquivo e começa a entrevista"
         >
           <IconPlus className="h-3.5 w-3.5" />
           Feature

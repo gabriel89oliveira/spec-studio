@@ -4,6 +4,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { DiffView } from "./components/DiffView";
 import { DocView, Sheet } from "./components/DocView";
+import { GuideCard } from "./components/GuideCard";
 import { IconClose } from "./components/Icons";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
@@ -358,6 +359,18 @@ export default function App() {
             )}
             {!live.doc && !live.error && openPath && <p className="p-8 text-center text-sm text-ink-3">Carregando…</p>}
             {!openPath && <p className="p-8 text-center text-sm text-ink-3">Escolha um arquivo à esquerda.</p>}
+            {live.doc && mode === "view" && live.doc.guide && (
+              <GuideCard
+                path={live.doc.path}
+                guide={live.doc.guide}
+                busy={busy}
+                claudeEnabled={claudeEnabled}
+                onContinue={(p) => {
+                  setRightTab("chat");
+                  void sendChat(p);
+                }}
+              />
+            )}
             {live.doc && mode === "view" && (
               <DocView
                 content={live.doc.content}
@@ -378,6 +391,7 @@ export default function App() {
                 onSaved={(d) => {
                   live.markSaved(d);
                   live.clearUpdate();
+                  void live.reload();
                 }}
                 onClose={() => setMode("view")}
                 onReload={live.reload}

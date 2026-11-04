@@ -9,6 +9,7 @@ import { CommentStore } from "./comments.js";
 import type { Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
+import { analyzeDoc } from "./guide.js";
 import { GitService } from "./git.js";
 import { JobRunner } from "./jobs.js";
 import { PathError, resolveDocPath } from "./paths.js";
@@ -91,7 +92,8 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
     "/api/file",
     h((req, res) => {
       const { abs, rel } = resolveDocPath(root, req.query.path);
-      res.json(readDoc(abs, rel));
+      const doc = readDoc(abs, rel);
+      res.json({ ...doc, guide: analyzeDoc(rel, doc.content) });
     }),
   );
 
