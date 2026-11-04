@@ -346,7 +346,7 @@ export default function App() {
             </div>
           )}
 
-          <div className="desk-grid min-h-0 flex-1 overflow-y-auto">
+          <div className="canvas min-h-0 flex-1 overflow-y-auto">
             {live.error && (
               <Sheet>
                 <p className="text-sm text-danger">{live.error}</p>

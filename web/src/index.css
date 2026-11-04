@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 /*
- * Prancheta: a especificação é uma folha sobre papel milimetrado azul.
- * Claro = folha branca na mesa de desenho. Escuro = planta (blueprint).
+ * A especificação é uma folha branca sobre um fundo liso e claro.
+ * No escuro, a folha fica sobre um azul profundo.
  */
 :root {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
@@ -36,12 +36,10 @@
   --del: 159 38 28;
   --del-soft: 252 233 231;
 
-  --grid: 36 87 166;
-  --grid-minor: 0.055;
-  --grid-major: 0.1;
+  --canvas: 245 247 250;
   --hl: rgb(255 214 51 / 0.42);
   --hl-active: rgb(255 200 20 / 0.75);
-  --shadow-sheet: 0 1px 1px rgb(29 40 54 / 0.05), 0 14px 34px -18px rgb(29 40 54 / 0.28);
+  --shadow-sheet: 0 0 0 1px rgb(29 40 54 / 0.06), 0 1px 3px rgb(29 40 54 / 0.05), 0 18px 40px -26px rgb(29 40 54 / 0.2);
   --shadow-lift: 0 6px 18px -8px rgb(29 40 54 / 0.25);
   color-scheme: light;
 }
@@ -73,9 +71,7 @@
     --del: 255 150 140;
     --del-soft: 74 32 36;
 
-    --grid: 125 179 255;
-    --grid-minor: 0.05;
-    --grid-major: 0.11;
+    --canvas: 13 27 44;
     --hl: rgb(255 214 102 / 0.3);
     --hl-active: rgb(255 214 102 / 0.58);
     --shadow-sheet: 0 0 0 1px rgb(var(--line)), 0 18px 40px -22px rgb(0 0 0 / 0.7);
@@ -100,21 +96,9 @@ body {
   font-kerning: normal;
 }
 
-/* Mesa de desenho: papel milimetrado (linhas finas a cada 16 px, grossas a cada 80 px). */
-.desk-grid {
-  background-color: rgb(var(--desk));
-  background-image:
-    linear-gradient(rgb(var(--grid) / var(--grid-major)) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(var(--grid) / var(--grid-major)) 1px, transparent 1px),
-    linear-gradient(rgb(var(--grid) / var(--grid-minor)) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(var(--grid) / var(--grid-minor)) 1px, transparent 1px);
-  background-size:
-    80px 80px,
-    80px 80px,
-    16px 16px,
-    16px 16px;
-  background-position: -1px -1px;
-  background-attachment: local;
+/* Fundo da área do documento: liso, um tom abaixo do branco da folha. */
+.canvas {
+  background-color: rgb(var(--canvas));
 }
 
 :focus-visible {
