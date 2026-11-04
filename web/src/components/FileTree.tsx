@@ -24,10 +24,40 @@ function modulesOf(tree: TreeNode[]): { id: string; label: string }[] {
     });
 }
 
+const moduleId = (name: string) => name.match(/^M\d+/i)?.[0].toUpperCase();
+
+/** Põe cada feature dentro do módulo a que pertence. Sobram em "features" só as sem módulo. */
+export function nestFeatures(tree: TreeNode[]): TreeNode[] {
+  return tree.map((top) => {
+    if (top.path !== "docs" || !top.children) return top;
+    const featDir = top.children.find((n) => n.type === "dir" && n.name === "features");
+    const modDir = top.children.find((n) => n.type === "dir" && n.name === "modulos");
+    if (!featDir || !modDir) return top;
+
+    const ids = new Set((modDir.children ?? []).filter((n) => n.type === "file").map((n) => moduleId(n.name)));
+    const feats = featDir.children ?? [];
+    const placed = (f: TreeNode) => f.type === "file" && !!f.module && ids.has(f.module);
+
+    const newMod: TreeNode = {
+      ...modDir,
+      children: (modDir.children ?? []).map((m) =>
+        m.type === "file" ? { ...m, features: feats.filter((f) => placed(f) && f.module === moduleId(m.name)) } : m,
+      ),
+    };
+    const rest = feats.filter((f) => !placed(f));
+    const children = top.children
+      .map((n) => (n === modDir ? newMod : n))
+      .filter((n) => n !== featDir || rest.length > 0)
+      .map((n) => (n === featDir ? { ...featDir, children: rest } : n));
+    return { ...top, children };
+  });
+}
+
 const INDENT = 14;
 
 function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Props }) {
   const [open, setOpen] = useState(!node.name.startsWith("_"));
+  const [featOpen, setFeatOpen] = useState(true);
 
   if (node.type === "dir") {
     return (
@@ -58,7 +88,9 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
 
   const active = node.path === props.openPath;
   const changed = props.changed.has(node.path);
-  return (
+  const feats = node.features;
+  const hasFeats = !!feats && feats.length > 0;
+  const row = (
     <button
       className={`relative my-px flex w-full items-start gap-2 rounded-lg py-1.5 pr-2 text-left text-[13.5px] ${
         active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-wash hover:text-ink"
@@ -69,6 +101,21 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
       data-path={node.path}
       aria-current={active ? "page" : undefined}
     >
+      {feats ? (
+        <span
+          role="button"
+          tabIndex={-1}
+          aria-label={featOpen ? "Recolher features" : "Mostrar features"}
+          aria-expanded={hasFeats ? featOpen : undefined}
+          className={`-ml-1 mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded ${hasFeats ? "hover:bg-line/60" : "opacity-0"}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasFeats) setFeatOpen(!featOpen);
+          }}
+        >
+          <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${hasFeats && featOpen ? "rotate-90" : ""}`} />
+        </span>
+      ) : null}
       <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />
       <span className="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere] line-clamp-2">{displayName(node.name)}</span>
       {!!node.openComments && (
@@ -81,6 +128,20 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
       )}
       {changed && <span className="mt-[6px] h-2 w-2 shrink-0 rounded-full bg-claude" title="Alterado pelo Claude" data-testid="changed-dot" />}
     </button>
+  );
+  if (!feats) return row;
+  return (
+    <div>
+      {row}
+      {hasFeats && featOpen && (
+        <div className="relative">
+          <span className="absolute bottom-1 top-0 w-px bg-line" style={{ left: `${11 + (depth + 1) * INDENT}px` }} aria-hidden="true" />
+          {feats.map((f) => (
+            <Node key={f.path} node={f} depth={depth + 1} props={props} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -158,11 +219,12 @@ function NewItemForm({
 export function FileTree(props: Props) {
   const [creating, setCreating] = useState<"feature" | "module" | null>(null);
   const modules = useMemo(() => modulesOf(props.tree), [props.tree]);
+  const nested = useMemo(() => nestFeatures(props.tree), [props.tree]);
 
   return (
     <aside className="flex w-60 shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
       <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
-        {props.tree.map((n) => (
+        {nested.map((n) => (
           <Node key={n.path} node={n} depth={0} props={props} />
         ))}
       </nav>

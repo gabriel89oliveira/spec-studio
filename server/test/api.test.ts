@@ -42,6 +42,17 @@ describe("Fase 1 — Navegar e ler", () => {
     expect(names).toContain("docs/features/F01-agendamento.md");
   });
 
+  it("informa o módulo de cada feature, lido da tabela do topo", async () => {
+    const { api, dir: root } = await setup();
+    const dir = path.join(root, "docs", "features");
+    fs.writeFileSync(path.join(dir, "F02-orcamento.md"), "# F02\n\n| Campo | Valor |\n|---|---|\n| Módulo | [M03](../modulos/M03-x.md) |\n");
+    fs.writeFileSync(path.join(dir, "F03-rascunho.md"), "# F03\n\n| Campo | Valor |\n|---|---|\n| Módulo | [M00] |\n");
+    const res = await api.get("/api/tree").expect(200);
+    const features = res.body[1].children.find((n: { name: string }) => n.name === "features").children;
+    const byName = Object.fromEntries(features.map((n: { name: string; module?: string }) => [n.name, n.module]));
+    expect(byName).toEqual({ "F01-agendamento.md": undefined, "F02-orcamento.md": "M03", "F03-rascunho.md": undefined });
+  });
+
   it("devolve o conteúdo e o hash do arquivo", async () => {
     const { api } = await setup();
     const res = await api.get("/api/file").query({ path: "docs/CONCEITO.md" }).expect(200);

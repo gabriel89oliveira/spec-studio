@@ -27,7 +27,8 @@ export function startWatcher(root: string, bus: EventBus, tracker: SourceTracker
     if (!rel.toLowerCase().endsWith(".md")) return;
     const hash = kind === "unlink" ? null : currentHash(abs);
     bus.emit("file.changed", { path: rel, hash, source: tracker.sourceFor(rel, hash) });
-    if (kind !== "change") bus.emit("tree.changed", {});
+    // Uma feature pode ter trocado de módulo, e a árvore agrupa as features por módulo.
+    if (kind !== "change" || rel.startsWith("docs/features/")) bus.emit("tree.changed", {});
   };
 
   watcher.on("add", (p) => handle("add", p));

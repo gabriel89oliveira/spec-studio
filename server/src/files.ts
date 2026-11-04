@@ -8,7 +8,28 @@ export type TreeNode = {
   type: "file" | "dir";
   children?: TreeNode[];
   openComments?: number;
+  /** Só em docs/features/: o módulo declarado na tabela do topo (ex.: "M01"). */
+  module?: string;
 };
+
+/**
+ * Lê o módulo da linha "| Módulo | ... |" no topo da feature.
+ * Aceita "M01", "[M01](../modulos/M01-x.md)" ou "M01 — Nome"; o placeholder do template ("[M00]") não conta.
+ */
+export function moduleOf(content: string): string | undefined {
+  const row = content.slice(0, 4000).match(/^\|\s*M[óo]dulo\s*\|([^\n]*)$/im)?.[1];
+  const id = row?.match(/\bM(\d+)\b/i);
+  if (!id || /^0+$/.test(id[1])) return undefined;
+  return `M${id[1]}`;
+}
+
+function readModule(abs: string): string | undefined {
+  try {
+    return moduleOf(fs.readFileSync(abs, "utf8"));
+  } catch {
+    return undefined;
+  }
+}
 
 function sortNodes(a: TreeNode, b: TreeNode): number {
   if (a.type !== b.type) return a.type === "file" ? -1 : 1;
@@ -33,7 +54,12 @@ function walk(root: string, relDir: string, counts: Record<string, number>): Tre
     if (e.isDirectory()) {
       nodes.push({ name: e.name, path: rel, type: "dir", children: walk(root, rel, counts) });
     } else if (e.isFile() && e.name.toLowerCase().endsWith(".md")) {
-      nodes.push({ name: e.name, path: rel, type: "file", openComments: counts[rel] ?? 0 });
+      const node: TreeNode = { name: e.name, path: rel, type: "file", openComments: counts[rel] ?? 0 };
+      if (relDir === "docs/features") {
+        const mod = readModule(path.join(absDir, e.name));
+        if (mod) node.module = mod;
+      }
+      nodes.push(node);
     }
   }
   return nodes.sort(sortNodes);

@@ -4,6 +4,10 @@ export type TreeNode = {
   type: "file" | "dir";
   children?: TreeNode[];
   openComments?: number;
+  /** Em features: o módulo declarado (ex.: "M01"). */
+  module?: string;
+  /** Em módulos: as features que pertencem a ele (montado no cliente). */
+  features?: TreeNode[];
 };
 
 export type FileDoc = { path: string; content: string; hash: string };
