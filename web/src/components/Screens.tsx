@@ -82,7 +82,33 @@ export function OverviewScreen(p: Common) {
   return (
     <Sheet wide>
       <div data-testid="overview">
-        <Title sub="Onde o projeto está e o que fazer a seguir.">{o.name}</Title>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <Title sub="Onde o projeto está e o que fazer a seguir.">{o.name}</Title>
+          <button
+            className={btnClaude}
+            disabled={p.busy || !p.claudeEnabled}
+            title="O Claude lê tudo e aponta o que ninguém disse mas provavelmente importa. Não altera nenhum arquivo."
+            onClick={() => p.onAsk('Revisão de lacunas.\nSiga a seção "Revisão de lacunas" do CLAUDE.md: leia todo o projeto, aponte o que está faltando e não altere nenhum arquivo.', "docs/CONCEITO.md")}
+          >
+            O que estou esquecendo?
+          </button>
+        </div>
+
+        {o.concept && o.concept.current !== null && (
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-claude/30 bg-claude-soft px-5 py-4" data-testid="start-here">
+            <div>
+              <div className="text-[15px] font-semibold text-ink">O Conceito ainda está incompleto</div>
+              <p className="mt-0.5 text-[13.5px] text-ink-2">O Claude conduz uma entrevista: você conta a ideia, ele pergunta o que falta, monta o Conceito e sugere os módulos.</p>
+            </div>
+            <button
+              className={btnClaude}
+              disabled={p.busy || !p.claudeEnabled}
+              onClick={() => p.onAsk('Abertura do projeto: docs/CONCEITO.md.\nSiga a seção "Abertura do projeto" do CLAUDE.md: conduza o Conceito inteiro, uma pergunta por vez, gravando cada resposta.', "docs/CONCEITO.md")}
+            >
+              Começar a entrevista de abertura
+            </button>
+          </div>
+        )}
 
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
           {stat(o.counts.modules, "módulos")}

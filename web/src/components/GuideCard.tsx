@@ -22,6 +22,13 @@ export function guidePrompt(path: string, guide: Guide): string {
   if (action === "apply") {
     return `Aplicação de fonte: ${path}.\nSiga a seção "Fontes de contexto" do CLAUDE.md: aplique nas specs só as propostas aceitas ([x]) e marque cada uma com → destino.`;
   }
+  if (guide.kind === "concept") {
+    return (
+      `Abertura do projeto: ${path}.\n` +
+      `Etapa atual: ${guide.current}. Falta: ${guide.missing.map((m) => m.label).join("; ")}.\n` +
+      `Siga a seção "Abertura do projeto" do CLAUDE.md: conduza o Conceito inteiro, uma pergunta por vez, gravando cada resposta.`
+    );
+  }
   const falta = guide.missing.map((m) => m.label).join("; ");
   return (
     `Entrevista guiada: etapa "${guide.current}" de ${path}.\n` +
@@ -146,7 +153,7 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
               title={!claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz uma pergunta por vez e grava as respostas no arquivo"}
               onClick={() => onContinue(guidePrompt(path, guide))}
             >
-              {action ? BUTTON[action] : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}
+              {action ? BUTTON[action] : guide.kind === "concept" && guide.reached === 0 ? "Começar a entrevista de abertura" : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}
             </button>
             )}
           </div>

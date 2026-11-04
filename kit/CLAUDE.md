@@ -105,6 +105,27 @@ Os dois também são guiados, pela mesma entrevista (uma pergunta por vez, grava
 
 Deixe de fora o que ainda não existe (sem "Decisão" enquanto estiver aberta). Só marque Decidida com a confirmação do usuário.
 
+## Abertura do projeto
+
+Quando o pedido começar com "Abertura do projeto", conduza o **Conceito inteiro** numa conversa só (Visão → Escopo → Requisitos), sem parar ao fechar cada etapa. O usuário não precisa saber a estrutura: você a conhece e organiza.
+
+1. Se houver fichas em `docs/fontes/`, leia as propostas antes e use-as como ponto de partida, confirmando com o usuário o que for aproveitar.
+2. Comece por **uma pergunta aberta**: "Conte a ideia do projeto do jeito que vier: o que é, para quem e que problema resolve."
+3. Da resposta, preencha de uma vez o que ela cobrir (Resumo, Problema, Perfis) usando as palavras do usuário, mostre o que gravou em 2 ou 3 linhas e pergunte o que está errado ou faltando. O que não foi dito não se preenche: pergunte, uma pergunta por vez.
+4. Escopo: pergunte o que precisa estar na primeira versão e o que fica de fora. Se o usuário ficar em dúvida, ofereça perguntas de apoio (quem usa no primeiro dia? o que acontece se isso não existir?).
+5. Mapa de módulos: proponha de 3 a 6 módulos candidatos a partir do que foi dito (nome e responsabilidade em uma linha cada) e pergunte quais ficam, quais mudam de nome e o que sobrou. Grave só os confirmados. Não crie os arquivos dos módulos: ofereça no fim.
+6. Requisitos gerais e diretrizes técnicas: pergunte por acesso e segurança, LGPD, desempenho, plataformas e se há stack definida; "ainda não sei" vira uma linha na seção, não um palpite seu.
+7. Ao terminar: resuma o Conceito em 3 linhas, aponte as maiores dúvidas que ficaram e sugira o próximo passo (criar o primeiro módulo; preencher a matriz de permissões com os perfis).
+
+## Revisão de lacunas
+
+Quando o pedido começar com "Revisão de lacunas", leia o Conceito, os módulos, as features, a matriz, as decisões e as fichas de fonte e aponte o que **ninguém disse mas provavelmente importa**. **Não edite nenhum arquivo** nesta rodada.
+
+1. Liste no máximo 7 lacunas, da mais para a menos importante. Cada uma tem: a evidência (onde, em qual arquivo, isso aparece ou falta), a pergunta e por que ela importa.
+2. Procure principalmente: perfil sem nenhuma ação ou feature; módulo sem feature; feature sem caso de erro ou sem quem aprova; fluxo que começa e não termina (criar sem cancelar, aprovar sem rejeitar, cobrar sem estornar); integração ou sistema citado que nenhum módulo trata; termo usado com dois sentidos; requisito geral ausente (LGPD, auditoria, notificações, perfil administrador, importação ou exportação de dados); dúvida antiga sem decisão.
+3. Separe o que tem evidência nos documentos do que é só uma pergunta de verificação comum no tipo de sistema, e diga qual é qual. Nunca apresente suposição como fato.
+4. No fim pergunte quais lacunas o usuário quer tratar agora. Para cada uma escolhida, siga a "Entrevista guiada" e grave a resposta no lugar certo: dúvida em aberto do documento, decisão em `docs/decisoes.md` (com a confirmação dele) ou a própria spec.
+
 ## Fontes de contexto
 
 Reuniões, documentos do cliente e normas entram como **fontes**. O original fica em `docs/fontes/originais/` e a plataforma cria uma ficha `docs/fontes/Sxx-nome.md` com o cabeçalho e as seções vazias: Resumo, Decisões, Requisitos, Regras de negócio, Dúvidas, Perfis e termos. A fonte nunca vira spec sozinha: você propõe, o usuário aceita.

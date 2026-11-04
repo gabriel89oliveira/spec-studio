@@ -63,6 +63,20 @@ function appendToSection(content: string, title: string, text: string): string {
   return ls.join("\n").replace(/\n*$/, "\n");
 }
 
+/** Acrescenta uma linha à tabela da seção `title`. */
+function appendRow(content: string, title: string, row: string): string {
+  const ls = content.split("\n");
+  const at = ls.findIndex((l) => /^##\s/.test(l) && norm(l.replace(/^##\s+/, "")) === norm(title));
+  if (at < 0) return content;
+  let end = ls.findIndex((l, i) => i > at && /^##\s/.test(l));
+  if (end < 0) end = ls.length;
+  let last = -1;
+  for (let i = at + 1; i < end; i++) if (ls[i].trim().startsWith("|")) last = i;
+  if (last < 0) return content;
+  ls.splice(last + 1, 0, row);
+  return ls.join("\n");
+}
+
 /** Grava a resposta do usuário no lugar certo, como o Claude de verdade faria. */
 function applyAnswer(content: string, item: Missing, answer: string): string {
   const a = answer.trim();
@@ -110,6 +124,30 @@ function applyAnswer(content: string, item: Missing, answer: string): string {
           return l;
         })
         .join("\n");
+    }
+    case "nome":
+      return content.replace(/^#\s+.*$/m, `# ${a} — Conceito`);
+    case "resumo":
+    case "problema":
+    case "solucao":
+    case "tecnicas":
+      return appendToSection(content, item.section!, a);
+    case "perfis":
+      return appendRow(content, item.section!, `| ${a} | | |`);
+    case "modulos": {
+      const n = (sectionsOf(content).get("mapa de modulos")?.match(/^\|\s*M\d+/gim) ?? []).length + 1;
+      return appendRow(content, item.section!, `| M${String(n).padStart(2, "0")} | ${a} | |`);
+    }
+    case "escopo": {
+      const ls = content.split("\n");
+      const dentro = ls.findIndex((l) => /^\*\*dentro/i.test(l));
+      const fora = ls.findIndex((l) => /^\*\*fora/i.test(l));
+      if (dentro >= 0 && fora > dentro) {
+        ls.splice(fora + 1, 0, "- (fora desta versão: a definir)");
+        ls.splice(dentro + 1, 0, `- ${a}`);
+        return ls.join("\n");
+      }
+      return appendToSection(content, item.section!, `**Dentro (MVP)**\n- ${a}\n\n**Fora (por enquanto)**\n- a definir`);
     }
     default:
       return appendToSection(content, item.section ?? item.label, `- ${a}`);
@@ -196,8 +234,12 @@ function plan(root: string, prompt: string, resume?: string): Plan {
     }
   }
 
+  if (/^Revisão de lacunas\b/m.test(prompt)) {
+    return { kind: "answer", summary: "**Lacunas (simulado)**: 1) nenhum perfil tem permissão de cancelar ordens; 2) o módulo M01 não tem feature de aprovação; 3) LGPD não aparece nos requisitos gerais. Nada foi alterado." };
+  }
+
   // Entrevista guiada: o Claude pergunta; a resposta seguinte do usuário é gravada no arquivo.
-  const start = prompt.match(/^Entrevista guiada: etapa "[^"]+" de (\S+?)\.?$/m);
+  const start = prompt.match(/^Entrevista guiada: etapa "[^"]+" de (\S+?)\.?$/m) ?? prompt.match(/^Abertura do projeto: (\S+?)\.?$/m);
   if (start) {
     const rel = start[1];
     const abs = checkAgentPath(root, rel);
