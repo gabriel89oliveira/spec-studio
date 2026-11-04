@@ -7,6 +7,12 @@ export type Config = {
   /** Caminho real e absoluto da pasta do projeto. */
   projectDir: string;
   apiKey?: string;
+  /** Token de um gateway de LLM (enviado como Bearer). Alternativa à chave da API. */
+  authToken?: string;
+  /** URL do gateway de LLM, no lugar de api.anthropic.com. */
+  baseUrl?: string;
+  /** Cabeçalhos extras exigidos pelo gateway, um "Nome: valor" por linha. */
+  customHeaders?: string;
   model: string;
   userName: string;
   port: number;
@@ -17,11 +23,17 @@ export type Config = {
 
 export class ConfigError extends Error {}
 
+/** Há credencial para falar com o modelo (chave da API ou token de gateway). */
+export const hasCredentials = (c: { apiKey?: string; authToken?: string }) => Boolean(c.apiKey || c.authToken);
+
 const emptyToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 
 const schema = z.object({
   PROJECT_DIR: z.preprocess(emptyToUndefined, z.string().optional()),
   ANTHROPIC_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  ANTHROPIC_AUTH_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
+  ANTHROPIC_BASE_URL: z.preprocess(emptyToUndefined, z.url({ error: "ANTHROPIC_BASE_URL deve ser uma URL completa, como https://gateway.suaempresa.com" }).optional()),
+  ANTHROPIC_CUSTOM_HEADERS: z.preprocess(emptyToUndefined, z.string().optional()),
   CLAUDE_MODEL: z.preprocess(emptyToUndefined, z.string().default("sonnet")),
   USER_NAME: z.preprocess(emptyToUndefined, z.string().default("Usuário")),
   PORT: z.preprocess(
@@ -67,6 +79,9 @@ export function loadBaseConfig(env: NodeJS.ProcessEnv = process.env): Omit<Confi
   return {
     envProjectDir: v.PROJECT_DIR?.trim() || undefined,
     apiKey: v.ANTHROPIC_API_KEY?.trim() || undefined,
+    authToken: v.ANTHROPIC_AUTH_TOKEN?.trim() || undefined,
+    baseUrl: v.ANTHROPIC_BASE_URL?.trim() || undefined,
+    customHeaders: v.ANTHROPIC_CUSTOM_HEADERS?.trim() || undefined,
     model: v.CLAUDE_MODEL,
     userName: v.USER_NAME,
     port: v.PORT,

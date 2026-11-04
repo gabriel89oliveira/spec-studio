@@ -150,7 +150,7 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
             <button
               className={`${btnClaude} shrink-0`}
               disabled={busy || !claudeEnabled}
-              title={!claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz uma pergunta por vez e grava as respostas no arquivo"}
+              title={!claudeEnabled ? "Configure o acesso ao Claude no .env" : "O Claude faz uma pergunta por vez e grava as respostas no arquivo"}
               onClick={() => onContinue(guidePrompt(path, guide))}
             >
               {action ? BUTTON[action] : guide.kind === "concept" && guide.reached === 0 ? "Começar a entrevista de abertura" : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}

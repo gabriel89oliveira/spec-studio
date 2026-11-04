@@ -144,7 +144,7 @@ export function ChatPanel({ messages, job, busy, claudeEnabled, openPath, onSend
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={!claudeEnabled}
-            placeholder={claudeEnabled ? "Mensagem para o Claude" : "Claude desativado: defina ANTHROPIC_API_KEY no .env"}
+            placeholder={claudeEnabled ? "Mensagem para o Claude" : "Claude desativado: configure o acesso ao Claude no .env"}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { chatPrompt, commentPrompt, runAgent, type AgentResult, type ClaudeConfig, type QueryFn } from "./claude.js";
 import { COMMENTS_DIR, type CommentStore } from "./comments.js";
-import type { Config } from "./config.js";
+import { hasCredentials, type Config } from "./config.js";
 import type { EventBus, SourceTracker } from "./events.js";
 import { currentHash } from "./files.js";
 import type { GitService } from "./git.js";
@@ -43,8 +43,8 @@ export class JobRunner {
   constructor(private d: Deps) {}
 
   private get claudeConfig(): ClaudeConfig {
-    const { projectDir, model, apiKey } = this.d.config;
-    return { projectDir, model, apiKey };
+    const { projectDir, model, apiKey, authToken, baseUrl, customHeaders } = this.d.config;
+    return { projectDir, model, apiKey, authToken, baseUrl, customHeaders };
   }
 
   isRunning(): boolean {
@@ -52,8 +52,8 @@ export class JobRunner {
   }
 
   private assertCanStart(): void {
-    if (!this.d.config.apiKey && !this.d.config.mock) {
-      throw new HttpError(400, "Claude desativado: defina ANTHROPIC_API_KEY no .env (ou CLAUDE_MOCK=true para testar sem custo)");
+    if (!hasCredentials(this.d.config) && !this.d.config.mock) {
+      throw new HttpError(400, "Claude desativado: defina ANTHROPIC_API_KEY ou ANTHROPIC_AUTH_TOKEN no .env (ou CLAUDE_MOCK=true para testar sem custo)");
     }
     if (this.isRunning()) throw new HttpError(409, "O Claude já está trabalhando em outro pedido");
   }

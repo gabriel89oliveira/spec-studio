@@ -6,7 +6,7 @@ import { z } from "zod";
 import { realQuery, type QueryFn } from "./claude.js";
 import { mockQuery } from "./mock.js";
 import { CommentStore } from "./comments.js";
-import type { Config } from "./config.js";
+import { hasCredentials, type Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
 import { analyzeDoc } from "./guide.js";
@@ -76,7 +76,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
         userName: config.userName,
         autoCommit: config.autoCommit,
         claude: {
-          enabled: Boolean(config.apiKey) || config.mock,
+          enabled: hasCredentials(config) || config.mock,
           mock: config.mock,
           model: config.mock ? "modo simulado" : config.model,
           job: jobs.publicJob(),

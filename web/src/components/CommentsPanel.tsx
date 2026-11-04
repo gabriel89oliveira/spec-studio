@@ -170,7 +170,7 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
             <button
               className={btnClaude}
               disabled={props.busy || !props.claudeEnabled}
-              title={!props.claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz o que o comentário pede"}
+              title={!props.claudeEnabled ? "Configure o acesso ao Claude no .env" : "O Claude faz o que o comentário pede"}
               onClick={() => void props.onSend(c.id)}
             >
               Enviar para o Claude

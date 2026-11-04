@@ -30,6 +30,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 USER_NAME=Gabriel
 ```
 
+**Gateway de LLM.** Para acessar o modelo por um gateway da empresa, deixe `ANTHROPIC_API_KEY` vazio e preencha `ANTHROPIC_AUTH_TOKEN` e `ANTHROPIC_BASE_URL` (veja o `.env.example`). Se o nome do modelo no gateway for diferente, use o nome exato em `CLAUDE_MODEL`.
+
 `PROJECT_DIR` é opcional. Clique no nome do projeto no cabeçalho para abrir outra pasta, escolher um projeto recente ou criar um projeto novo a partir do kit. O último projeto aberto pela tela é reaberto ao reiniciar (a lista de recentes fica em `~/.spec-studio/state.json`).
 
 Para parar, use Ctrl+C no terminal.

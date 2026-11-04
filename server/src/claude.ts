@@ -42,7 +42,9 @@ export const realQuery: QueryFn = async function* (params) {
   yield* query(params);
 };
 
-export type ClaudeConfig = { projectDir: string; model: string; apiKey?: string };
+/** Credenciais e destino das chamadas: chave da API ou token de gateway, com a URL do gateway se houver. */
+export type Auth = { apiKey?: string; authToken?: string; baseUrl?: string; customHeaders?: string };
+export type ClaudeConfig = { projectDir: string; model: string } & Auth;
 
 // ---------------------------------------------------------------------------
 // Guarda de caminhos
@@ -139,22 +141,28 @@ function toolPath(root: string, input: unknown): string | undefined {
 }
 
 /** Variáveis CLAUDE* que podem continuar passando para o agente. */
-const KEEP_ENV = new Set(["CLAUDE_CODE_GIT_BASH_PATH", "CLAUDE_CONFIG_DIR"]);
+const KEEP_ENV = new Set(["CLAUDE_CODE_GIT_BASH_PATH", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"]);
+
+const AUTH_VARS = new Set(["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "ANTHROPIC_CUSTOM_HEADERS"]);
 
 /**
  * Ambiente do agente. Remove variáveis de uma sessão do Claude Code em que o servidor
  * possa ter sido iniciado (ex.: terminal do Claude Code) e credenciais alternativas,
  * para que a chave do .env seja a usada e cada conversa tenha sua própria sessão.
  */
-export function agentEnv(apiKey: string | undefined, base: NodeJS.ProcessEnv = process.env): Record<string, string | undefined> {
+export function agentEnv(auth: string | Auth | undefined, base: NodeJS.ProcessEnv = process.env): Record<string, string | undefined> {
+  const a: Auth = typeof auth === "string" ? { apiKey: auth } : (auth ?? {});
   const env: Record<string, string | undefined> = {};
   for (const [k, v] of Object.entries(base)) {
     const upper = k.toUpperCase();
     if (upper.startsWith("CLAUDE") && !KEEP_ENV.has(upper)) continue;
-    if (upper === "ANTHROPIC_AUTH_TOKEN" || upper === "ANTHROPIC_API_KEY") continue;
+    if (AUTH_VARS.has(upper)) continue;
     env[k] = v;
   }
-  env.ANTHROPIC_API_KEY = apiKey;
+  env.ANTHROPIC_API_KEY = a.apiKey;
+  if (a.authToken) env.ANTHROPIC_AUTH_TOKEN = a.authToken;
+  if (a.baseUrl) env.ANTHROPIC_BASE_URL = a.baseUrl;
+  if (a.customHeaders) env.ANTHROPIC_CUSTOM_HEADERS = a.customHeaders;
   env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = "1";
   env.CLAUDE_AGENT_SDK_CLIENT_APP = "spec-studio/0.1.0";
   return env;
@@ -176,7 +184,7 @@ export function buildOptions(cfg: ClaudeConfig, controller: AbortController, res
     hooks: {
       PreToolUse: [{ matcher: "Read|Edit|Write|Glob|Grep", hooks: [makeGuardPaths(cfg.projectDir)] }],
     },
-    env: agentEnv(cfg.apiKey),
+    env: agentEnv(cfg),
     stderr: onStderr,
   };
 }

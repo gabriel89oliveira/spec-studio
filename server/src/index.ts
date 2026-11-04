@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   log(`Lendo ${envPath} (${fs.existsSync(envPath) ? "encontrado" : "NÃO encontrado"})`);
   loadEnv({ path: envPath, quiet: true });
 
-  const { ConfigError, loadBaseConfig } = await import("./config.js");
+  const { ConfigError, hasCredentials, loadBaseConfig } = await import("./config.js");
   let config;
   try {
     config = loadBaseConfig();
@@ -93,13 +93,13 @@ async function main(): Promise<void> {
       `Claude: ${
         config.mock
           ? "MODO SIMULADO (sem custo; tire CLAUDE_MOCK=true do .env para usar o Claude de verdade)"
-          : config.apiKey
-            ? `ativado (${config.model})`
-            : "desativado (defina ANTHROPIC_API_KEY no .env)"
+          : hasCredentials(config)
+            ? `ativado (${config.model}${config.baseUrl ? `, via ${config.baseUrl}` : ""}${config.authToken && !config.apiKey ? ", token de gateway" : ""})`
+            : "desativado (defina ANTHROPIC_API_KEY ou ANTHROPIC_AUTH_TOKEN no .env)"
       }`,
     );
     log("Pronto. Abra http://localhost:5173 no navegador");
-    if (config.apiKey && !config.mock) void warmUpClaude();
+    if (hasCredentials(config) && !config.mock) void warmUpClaude();
   });
   httpServer.on("error", (err: NodeJS.ErrnoException) => {
     log(
