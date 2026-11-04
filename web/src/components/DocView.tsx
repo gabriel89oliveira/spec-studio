@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -13,8 +13,9 @@ import {
   type TextMap,
 } from "../anchors";
 import type { Anchor, Comment } from "../types";
+import type { TaskAction } from "../tasks";
 import { btnPrimary } from "../ui";
-import { IconComment } from "./Icons";
+import { IconClose, IconComment, IconUndo } from "./Icons";
 
 type Props = {
   content: string;
@@ -24,6 +25,8 @@ type Props = {
   onFocusComment: (id: string) => void;
   /** Ids dos comentários cujo trecho foi encontrado no texto atual. */
   onAnchorsResolved: (found: Set<string>) => void;
+  /** Fichas de fonte: aceitar, descartar ou restaurar uma proposta pela linha do texto. */
+  onTask?: (line: number, action: TaskAction) => void;
 };
 
 /** A folha branca onde o documento é exibido. */
@@ -37,11 +40,53 @@ export function Sheet({ children, wide, flush }: { children: React.ReactNode; wi
   );
 }
 
-const Markdown = memo(function Markdown({ content }: { content: string }) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
+const taskBtn =
+  "ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded align-middle text-ink-3 hover:bg-wash hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40";
+
+const Markdown = memo(function Markdown({ content, onTask }: { content: string; onTask?: (line: number, action: TaskAction) => void }) {
+  const components = useMemo(() => {
+    if (!onTask) return undefined;
+    return {
+      li({ node, children, className }: { node?: { position?: { start: { line: number } } }; children?: React.ReactNode; className?: string }) {
+        const line = node?.position?.start.line;
+        const kids = Children.toArray(children);
+        const first = kids[0];
+        const isTask = isValidElement(first) && first.type === "input";
+        const isDiscarded = isValidElement(first) && first.type === "del";
+        if (line === undefined || (!isTask && !isDiscarded)) return <li className={className}>{children}</li>;
+        if (isDiscarded) {
+          return (
+            <li className={className}>
+              {children}
+              <button type="button" className={taskBtn} aria-label="Restaurar proposta" title="Restaurar" onClick={() => onTask(line, "restore")}>
+                <IconUndo className="h-3 w-3" />
+              </button>
+            </li>
+          );
+        }
+        const checked = Boolean((first.props as { checked?: boolean }).checked);
+        return (
+          <li className={className}>
+            <input type="checkbox" checked={checked} onChange={() => onTask(line, "toggle")} aria-label={checked ? "Proposta aceita" : "Aceitar proposta"} />
+            {kids.slice(1)}
+            {!checked && (
+              <button type="button" className={taskBtn} aria-label="Descartar proposta" title="Descartar" onClick={() => onTask(line, "discard")}>
+                <IconClose className="h-3 w-3" />
+              </button>
+            )}
+          </li>
+        );
+      },
+    };
+  }, [onTask]);
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      {content}
+    </ReactMarkdown>
+  );
 });
 
-export function DocView({ content, comments, activeId, onComment, onFocusComment, onAnchorsResolved }: Props) {
+export function DocView({ content, comments, activeId, onComment, onFocusComment, onAnchorsResolved, onTask }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const tmRef = useRef<TextMap | null>(null);
@@ -130,7 +175,7 @@ export function DocView({ content, comments, activeId, onComment, onFocusComment
     <Sheet>
       <div ref={wrapRef} className="relative">
         <div ref={bodyRef} onMouseUp={onMouseUp} onClick={onClick} data-testid="doc-body" className="md">
-          <Markdown content={content} />
+          <Markdown content={content} onTask={onTask} />
         </div>
         {pending && (
           <button

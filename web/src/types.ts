@@ -10,9 +10,9 @@ export type TreeNode = {
   features?: TreeNode[];
 };
 
-export type GuideMissing = { id: string; label: string; ask: string; section?: string };
+export type GuideMissing = { id: string; label: string; ask: string; section?: string; action?: "extract" | "review" | "apply" };
 export type Guide = {
-  kind: "feature" | "module";
+  kind: "feature" | "module" | "source";
   steps: string[];
   reached: number;
   current: string | null;

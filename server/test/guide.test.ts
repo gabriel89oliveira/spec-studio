@@ -66,3 +66,31 @@ it("só analisa features e módulos", () => {
   expect(analyzeDoc("docs/CONCEITO.md", "# x")).toBeNull();
   expect(analyzeDoc("docs/_templates/feature.md", "# x")).toBeNull();
 });
+
+describe("guia de fonte", () => {
+  const S = "docs/fontes/S01-x.md";
+  const vazia = "# S01 — Reunião\n\n| Campo | Valor |\n|---|---|\n| Tipo | Reunião |\n\n## Resumo\n\n## Requisitos\n";
+  it("percorre Importada, Revisada e Aplicada pelas marcas das propostas", () => {
+    expect(analyzeDoc(S, vazia)).toMatchObject({ kind: "source", reached: 0, current: "Importada" });
+    expect(analyzeDoc(S, vazia)!.missing[0].action).toBe("extract");
+
+    const pend = vazia.replace("## Resumo\n", "## Resumo\nConversa sobre oficinas.\n") + "- [ ] Gestor aprova orçamento — [14:32]\n- [ ] Oficina emite nota — [15:10]\n";
+    let g = analyzeDoc(S, pend)!;
+    expect(g).toMatchObject({ reached: 1, current: "Revisada" });
+    expect(g.missing[0]).toMatchObject({ action: "review" });
+    expect(g.missing[0].label).toContain("2 propostas");
+
+    const aceitas = pend.replace("- [ ] Gestor", "- [x] Gestor").replace("- [ ] Oficina emite nota — [15:10]", "- ~~Oficina emite nota~~ — [15:10]");
+    g = analyzeDoc(S, aceitas)!;
+    expect(g).toMatchObject({ reached: 2, current: "Aplicada" });
+    expect(g.missing[0]).toMatchObject({ action: "apply" });
+
+    const aplicada = aceitas.replace("[14:32]", "[14:32] → F01");
+    expect(analyzeDoc(S, aplicada)).toMatchObject({ reached: 3, current: null });
+  });
+
+  it("ignora marcas dentro de bloco de código", () => {
+    const c = "# S\n\n## Resumo\nx\n\n```\n- [ ] exemplo\n```\n- [x] real → F01\n";
+    expect(analyzeDoc("docs/fontes/S02-y.md", c)).toMatchObject({ reached: 3 });
+  });
+});

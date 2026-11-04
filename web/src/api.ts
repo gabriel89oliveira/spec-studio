@@ -47,6 +47,9 @@ export const api = {
   saveFile: (path: string, content: string, baseHash: string) =>
     req<{ path: string; hash: string; commit: string | null }>("PUT", "/api/file", { path, content, baseHash }),
 
+  importSource: (b: { name: string; type: string; fileName?: string; encoding: "base64" | "text"; content: string }) =>
+    req<{ ficha: string; original: string; commit: string | null }>("POST", "/api/sources", b),
+
   comments: (path: string) => req<Comment[]>("GET", `/api/comments?path=${q(path)}`),
   createComment: (file: string, anchor: Anchor, body: string) => req<Comment>("POST", "/api/comments", { file, anchor, body }),
   updateComment: (id: string, patch: { body?: string; status?: "open" | "resolved" }) =>

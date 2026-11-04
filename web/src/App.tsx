@@ -5,6 +5,7 @@ import { CommentsPanel } from "./components/CommentsPanel";
 import { DiffView } from "./components/DiffView";
 import { DocView, Sheet } from "./components/DocView";
 import { GuideCard } from "./components/GuideCard";
+import { applyTask, type TaskAction } from "./tasks";
 import { IconClose } from "./components/Icons";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
@@ -230,13 +231,37 @@ export default function App() {
     return true;
   };
 
-  const sendChat = async (text: string) => {
-    const r = await run(() => api.chat(text, chatSessionId ?? undefined, openPath ?? undefined));
+  const sendChat = async (text: string, file: string | null = openPath) => {
+    const r = await run(() => api.chat(text, chatSessionId ?? undefined, file ?? undefined));
     if (!r) return false;
     if (r.sessionId !== chatSessionId) setChatSessionId(r.sessionId);
     else void refreshChat();
     return true;
   };
+
+  const importSource = async (p: Parameters<typeof api.importSource>[0]) => {
+    const r = await run(() => api.importSource(p));
+    if (!r) return false;
+    await refreshTree();
+    setOpenPath(r.ficha);
+    setMode("view");
+    setRightTab("chat");
+    void sendChat(`Extração de fonte: ${r.ficha}.\nSiga a seção "Fontes de contexto" do CLAUDE.md: leia o original e preencha a ficha só com propostas rastreáveis ao texto.`, r.ficha);
+    return true;
+  };
+
+  const onTask = async (line: number, action: TaskAction) => {
+    const d = live.doc;
+    if (!d || busy) return;
+    const next = applyTask(d.content, line, action);
+    if (next === null) return;
+    const saved = await run(() => api.saveFile(d.path, next, d.hash));
+    if (saved) await live.reload();
+  };
+
+  const onTaskRef = useRef(onTask);
+  onTaskRef.current = onTask;
+  const stableTask = useCallback((l: number, a: TaskAction) => void onTaskRef.current(l, a), []);
 
   const cancelJob = () => {
     if (job) void run(() => api.cancel(job.id));
@@ -297,6 +322,7 @@ export default function App() {
             setRightTab("chat");
             void sendChat(p);
           }}
+          onImport={importSource}
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -379,6 +405,7 @@ export default function App() {
                 onComment={onComment}
                 onFocusComment={onFocusComment}
                 onAnchorsResolved={onAnchorsResolved}
+                onTask={live.doc.guide?.kind === "source" && !busy ? stableTask : undefined}
               />
             )}
             {live.doc && mode === "edit" && (

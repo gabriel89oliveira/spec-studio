@@ -52,6 +52,7 @@ function walk(root: string, relDir: string, counts: Record<string, number>): Tre
     if (e.name.startsWith(".")) continue;
     const rel = `${relDir}/${e.name}`;
     if (e.isDirectory()) {
+      if (rel === "docs/fontes/originais") continue; // arquivos originais das fontes (PDF etc.) ficam fora da árvore
       nodes.push({ name: e.name, path: rel, type: "dir", children: walk(root, rel, counts) });
     } else if (e.isFile() && e.name.toLowerCase().endsWith(".md")) {
       const node: TreeNode = { name: e.name, path: rel, type: "file", openComments: counts[rel] ?? 0 };

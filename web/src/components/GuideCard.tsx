@@ -9,8 +9,15 @@ type Props = {
   onContinue: (prompt: string) => void;
 };
 
-/** O pedido que abre (ou retoma) a entrevista da etapa atual. */
-export function interviewPrompt(path: string, guide: Guide): string {
+/** O pedido que o botão do cartão envia ao Claude, conforme o que falta. */
+export function guidePrompt(path: string, guide: Guide): string {
+  const action = guide.missing[0]?.action;
+  if (action === "extract") {
+    return `Extração de fonte: ${path}.\nSiga a seção "Fontes de contexto" do CLAUDE.md: leia o original e preencha a ficha só com propostas rastreáveis ao texto.`;
+  }
+  if (action === "apply") {
+    return `Aplicação de fonte: ${path}.\nSiga a seção "Fontes de contexto" do CLAUDE.md: aplique nas specs só as propostas aceitas ([x]) e marque cada uma com → destino.`;
+  }
   const falta = guide.missing.map((m) => m.label).join("; ");
   return (
     `Entrevista guiada: etapa "${guide.current}" de ${path}.\n` +
@@ -18,6 +25,8 @@ export function interviewPrompt(path: string, guide: Guide): string {
     `Siga a seção "Entrevista guiada" do CLAUDE.md: uma pergunta por vez, gravando cada resposta no arquivo.`
   );
 }
+
+const BUTTON: Record<string, string> = { extract: "Extrair com o Claude", apply: "Aplicar com o Claude" };
 
 function Steps({ guide }: { guide: Guide }) {
   return (
@@ -52,7 +61,9 @@ function Steps({ guide }: { guide: Guide }) {
 
 export function GuideCard({ path, guide, busy, claudeEnabled, onContinue }: Props) {
   const finished = guide.current === null;
-  const review = guide.missing.length === 1 && guide.missing[0].id === "revisao";
+  const action = guide.missing[0]?.action;
+  const review = action === "review";
+  const pedeRevisao = guide.missing.length === 1 && guide.missing[0].id === "revisao" && !action;
   return (
     <div className="mx-auto max-w-[780px] px-2 pb-3 xl:px-4" data-testid="guide-card">
       <section className="space-y-3 rounded-2xl border border-line/70 bg-panel px-5 py-4 shadow-[var(--shadow-panel)]">
@@ -80,14 +91,18 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue }: Prop
                 ))}
               </ul>
             </div>
+            {review ? (
+              <p className="max-w-[210px] shrink-0 text-right text-xs leading-snug text-ink-3">Marque a caixa para aceitar ou use × para descartar.</p>
+            ) : (
             <button
               className={`${btnClaude} shrink-0`}
               disabled={busy || !claudeEnabled}
               title={!claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz uma pergunta por vez e grava as respostas no arquivo"}
-              onClick={() => onContinue(interviewPrompt(path, guide))}
+              onClick={() => onContinue(guidePrompt(path, guide))}
             >
-              {review ? "Revisar com o Claude" : "Continuar com o Claude"}
+              {action ? BUTTON[action] : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}
             </button>
+            )}
           </div>
         )}
       </section>

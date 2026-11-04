@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { TreeNode } from "../types";
 import { btn, btnClaude, btnGhost, displayName, input } from "../ui";
 import { IconChevron, IconFile, IconPlus } from "./Icons";
+import { ImportSource, type SourcePayload } from "./ImportSource";
 
 type Props = {
   tree: TreeNode[];
@@ -10,6 +11,7 @@ type Props = {
   canCreate: boolean;
   onOpen: (path: string) => void;
   onCreate: (prompt: string) => void;
+  onImport: (p: SourcePayload) => Promise<boolean>;
 };
 
 function modulesOf(tree: TreeNode[]): { id: string; label: string }[] {
@@ -217,18 +219,28 @@ function NewItemForm({
 }
 
 export function FileTree(props: Props) {
-  const [creating, setCreating] = useState<"feature" | "module" | null>(null);
+  const [creating, setCreating] = useState<"feature" | "module" | "source" | null>(null);
   const modules = useMemo(() => modulesOf(props.tree), [props.tree]);
   const nested = useMemo(() => nestFeatures(props.tree), [props.tree]);
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
+    <aside className="flex w-60 shrink-0 flex-col overflow-clip rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
         {nested.map((n) => (
           <Node key={n.path} node={n} depth={0} props={props} />
         ))}
       </nav>
-      {creating && (
+      {creating === "source" && (
+        <ImportSource
+          onClose={() => setCreating(null)}
+          onSubmit={async (p) => {
+            const ok = await props.onImport(p);
+            if (ok) setCreating(null);
+            return ok;
+          }}
+        />
+      )}
+      {creating && creating !== "source" && (
         <NewItemForm
           kind={creating}
           modules={modules}
@@ -239,9 +251,9 @@ export function FileTree(props: Props) {
           }}
         />
       )}
-      <div className="flex gap-1.5 border-t border-line/70 p-2.5">
+      <div className="flex gap-1 border-t border-line/70 p-2">
         <button
-          className={`${btnGhost} flex-1`}
+          className={`${btnGhost} min-w-0 flex-1 !px-1.5`}
           disabled={!props.canCreate}
           onClick={() => setCreating("feature")}
           title="O Claude cria o arquivo e começa a entrevista"
@@ -249,9 +261,13 @@ export function FileTree(props: Props) {
           <IconPlus className="h-3.5 w-3.5" />
           Feature
         </button>
-        <button className={`${btnGhost} flex-1`} disabled={!props.canCreate} onClick={() => setCreating("module")}>
+        <button className={`${btnGhost} min-w-0 flex-1 !px-1.5`} disabled={!props.canCreate} onClick={() => setCreating("module")}>
           <IconPlus className="h-3.5 w-3.5" />
           Módulo
+        </button>
+        <button className={`${btnGhost} min-w-0 flex-1 !px-1.5`} disabled={!props.canCreate} onClick={() => setCreating("source")} title="Importar PDF, texto ou transcrição como fonte de contexto">
+          <IconPlus className="h-3.5 w-3.5" />
+          Fonte
         </button>
       </div>
     </aside>

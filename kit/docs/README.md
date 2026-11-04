@@ -23,11 +23,18 @@ docs/
 ├── _templates/
 │   ├── modulo.md
 │   └── feature.md
+├── fontes/
+│   ├── S01-nome-da-fonte.md
+│   └── originais/
 ├── modulos/
 │   └── M01-nome-do-modulo.md
 └── features/
     └── F01-nome-curto.md
 ```
+
+## Fontes de contexto
+
+Transcrições de reunião, documentos do cliente e normas entram pelo botão **Fonte**. O Claude lê o original e propõe decisões, requisitos e dúvidas, cada uma com a origem. Você aceita ou descarta cada proposta, e só depois o Claude as aplica nas specs. Etapas de uma fonte: Importada → Revisada → Aplicada.
 
 ## Como trabalhar
 

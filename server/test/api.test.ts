@@ -462,6 +462,51 @@ describe("Modo simulado (CLAUDE_MOCK=true)", () => {
     expect(JSON.stringify(chat.messages)).toContain("etapa **Ideia** completa");
   });
 
+  it("fonte: importa texto e PDF, extrai propostas, revisa e aplica", async () => {
+    const { api, dir, srv } = await mockSetup();
+    const up = await api
+      .post("/api/sources")
+      .send({ name: "Reunião de alinhamento", type: "reuniao", encoding: "text", content: "Maria 0:01\nVamos aprovar orçamentos pelo gestor." })
+      .expect(201);
+    expect(up.body).toMatchObject({ ficha: "docs/fontes/S01-reuniao-de-alinhamento.md", original: "docs/fontes/originais/S01-reuniao-de-alinhamento.txt" });
+    expect(fs.readFileSync(path.join(dir, up.body.original), "utf8")).toContain("aprovar orçamentos");
+    expect((await log(dir))[0].message).toBe("fonte: Reunião de alinhamento");
+
+    const pdf = await api
+      .post("/api/sources")
+      .send({ name: "LGPD", type: "norma", fileName: "lgpd.pdf", encoding: "base64", content: Buffer.from("%PDF-1.4 teste").toString("base64") })
+      .expect(201);
+    expect(pdf.body.ficha).toBe("docs/fontes/S02-lgpd.md");
+    const tree = JSON.stringify((await api.get("/api/tree")).body);
+    expect(tree).toContain("docs/fontes/S02-lgpd.md");
+    expect(tree).not.toContain("originais");
+
+    const g0 = (await api.get("/api/file").query({ path: up.body.ficha })).body.guide;
+    expect(g0).toMatchObject({ kind: "source", current: "Importada" });
+
+    await api.post("/api/chat").send({ message: `Extração de fonte: ${up.body.ficha}.` }).expect(202);
+    await srv.jobs.idle;
+    let g = (await api.get("/api/file").query({ path: up.body.ficha })).body.guide;
+    expect(g).toMatchObject({ current: "Revisada" });
+
+    const file = path.join(dir, up.body.ficha);
+    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/- \[ \]/g, "- [x]"));
+    g = (await api.get("/api/file").query({ path: up.body.ficha })).body.guide;
+    expect(g).toMatchObject({ current: "Aplicada" });
+
+    await api.post("/api/chat").send({ message: `Aplicação de fonte: ${up.body.ficha}.` }).expect(202);
+    await srv.jobs.idle;
+    g = (await api.get("/api/file").query({ path: up.body.ficha })).body.guide;
+    expect(g).toMatchObject({ reached: 3, current: null });
+  });
+
+  it("fonte: recusa formato desconhecido, PDF falso e conteúdo vazio", async () => {
+    const { api } = await mockSetup();
+    await api.post("/api/sources").send({ name: "x", type: "outro", fileName: "a.exe", encoding: "text", content: "x" }).expect(400);
+    await api.post("/api/sources").send({ name: "x", type: "outro", fileName: "a.pdf", encoding: "base64", content: Buffer.from("nao e pdf").toString("base64") }).expect(400);
+    await api.post("/api/sources").send({ name: "x", type: "outro", encoding: "text", content: "" }).expect(400);
+  });
+
   it("pode ser cancelado", async () => {
     const { api, srv } = await mockSetup();
     const events: { event: EventName; data: any }[] = [];

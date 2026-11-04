@@ -10,6 +10,7 @@ import type { Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
 import { analyzeDoc } from "./guide.js";
+import { saveSource, SOURCE_TYPES } from "./sources.js";
 import { GitService } from "./git.js";
 import { JobRunner } from "./jobs.js";
 import { PathError, resolveDocPath } from "./paths.js";
@@ -59,7 +60,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
 
   const app = express();
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "5mb" }));
+  app.use(express.json({ limit: "40mb" }));
 
   app.get(
     "/api/project",
@@ -94,6 +95,29 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
       const { abs, rel } = resolveDocPath(root, req.query.path);
       const doc = readDoc(abs, rel);
       res.json({ ...doc, guide: analyzeDoc(rel, doc.content) });
+    }),
+  );
+
+  app.post(
+    "/api/sources",
+    h(async (req, res) => {
+      const body = parse(
+        z.object({
+          name: z.string().trim().min(1, "informe o nome da fonte").max(120),
+          type: z.enum(Object.keys(SOURCE_TYPES) as [keyof typeof SOURCE_TYPES, ...(keyof typeof SOURCE_TYPES)[]]),
+          fileName: z.string().max(260).optional(),
+          encoding: z.enum(["base64", "text"]),
+          content: z.string().min(1, "o conteúdo está vazio"),
+        }),
+        req.body,
+      );
+      assertIdle();
+      const saved = saveSource(root, body);
+      const { hash } = readDoc(path.join(root, ...saved.ficha.split("/")), saved.ficha);
+      tracker.mark(saved.ficha, hash, "manual");
+      const commit = config.autoCommit ? await git.commitPaths([saved.ficha, saved.original], `fonte: ${body.name}`) : null;
+      bus.emit("tree.changed", {});
+      res.status(201).json({ ...saved, commit });
     }),
   );
 

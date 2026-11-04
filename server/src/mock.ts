@@ -161,6 +161,41 @@ function plan(root: string, prompt: string, resume?: string): Plan {
     };
   }
 
+  // Fontes de contexto: extração das propostas e aplicação das aceitas.
+  const extract = prompt.match(/^Extração de fonte: (\S+?)\.?$/m);
+  if (extract) {
+    const rel = extract[1];
+    const abs = checkAgentPath(root, rel);
+    if (abs.ok && fs.existsSync(abs.abs)) {
+      let c = fs.readFileSync(abs.abs, "utf8");
+      c = appendToSection(c, "Resumo", "Resumo de exemplo gerado pelo modo simulado. Nenhum Claude real leu o original.");
+      c = appendToSection(c, "Decisões", "- [ ] Decisão de exemplo extraída da fonte — [trecho 1]");
+      c = appendToSection(c, "Requisitos", "- [ ] Requisito de exemplo: o gestor aprova orçamentos — [trecho 2]\n- [ ] Outro requisito de exemplo — [trecho 3]");
+      c = appendToSection(c, "Dúvidas", "- [ ] Dúvida de exemplo que ficou em aberto — [trecho 4]");
+      return { kind: "interview", rel, content: c, summary: `li a fonte e registrei 4 propostas em \`${rel}\`. Revise cada uma: aceite ou descarte` };
+    }
+  }
+  const apply = prompt.match(/^Aplicação de fonte: (\S+?)\.?$/m);
+  if (apply) {
+    const rel = apply[1];
+    const abs = checkAgentPath(root, rel);
+    if (abs.ok && fs.existsSync(abs.abs)) {
+      let n = 0;
+      const c = fs
+        .readFileSync(abs.abs, "utf8")
+        .split("\n")
+        .map((l) => {
+          if (/^\s*[-*]\s+\[x\]\s+\S/i.test(l) && !l.includes("→")) {
+            n++;
+            return `${l} → docs/CONCEITO.md`;
+          }
+          return l;
+        })
+        .join("\n");
+      return { kind: "interview", rel, content: c, summary: `marquei ${n} proposta(s) como aplicada(s) em \`${rel}\` (no modo simulado as specs não são alteradas)` };
+    }
+  }
+
   // Entrevista guiada: o Claude pergunta; a resposta seguinte do usuário é gravada no arquivo.
   const start = prompt.match(/^Entrevista guiada: etapa "[^"]+" de (\S+?)\.?$/m);
   if (start) {

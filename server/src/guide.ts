@@ -4,7 +4,7 @@
  * julga o conteúdo. A mesma regra serve ao cartão "Próximo passo" e ao modo simulado.
  */
 
-export type DocKind = "feature" | "module";
+export type DocKind = "feature" | "module" | "source";
 
 export type Missing = {
   id: string;
@@ -14,6 +14,8 @@ export type Missing = {
   ask: string;
   /** Seção do arquivo onde a resposta entra. */
   section?: string;
+  /** O que fazer: sem valor = entrevista; extract/apply = pedido ao Claude; review = só o usuário. */
+  action?: "extract" | "review" | "apply";
 };
 
 export type Guide = {
@@ -33,6 +35,7 @@ export type Guide = {
 
 export const FEATURE_STEPS = ["Ideia", "Entendida", "Detalhada", "Pronta para dev"];
 export const MODULE_STEPS = ["Ideia", "Mapeado", "Detalhado"];
+export const SOURCE_STEPS = ["Importada", "Revisada", "Aplicada"];
 
 const LATER_STATUS = ["em desenvolvimento", "concluida", "cancelada"];
 
@@ -47,6 +50,7 @@ export function norm(s: string): string {
 export function kindOfPath(rel: string): DocKind | null {
   if (/^docs\/features\/[^/]+\.md$/i.test(rel)) return "feature";
   if (/^docs\/modulos\/[^/]+\.md$/i.test(rel)) return "module";
+  if (/^docs\/fontes\/[^/]+\.md$/i.test(rel)) return "source";
   return null;
 }
 
@@ -196,11 +200,57 @@ const moduleSteps: Step[] = [
   },
 ];
 
+/** Propostas de uma ficha de fonte: "- [ ] texto" pendente, "- [x] texto" aceita, "- ~~texto~~" descartada. */
+export function proposalsOf(content: string): { pending: number; accepted: number; applied: number; discarded: number } {
+  const out = { pending: 0, accepted: 0, applied: 0, discarded: 0 };
+  let fence = false;
+  for (const raw of content.split("\n")) {
+    const l = raw.trim();
+    if (l.startsWith("```")) fence = !fence;
+    if (fence) continue;
+    if (/^[-*]\s+\[ \]\s+\S/.test(l)) out.pending++;
+    else if (/^[-*]\s+\[x\]\s+\S/i.test(l)) {
+      out.accepted++;
+      if (l.includes("→")) out.applied++;
+    } else if (/^[-*]\s+~~/.test(l)) out.discarded++;
+  }
+  return out;
+}
+
+function analyzeSource(content: string, sec: Map<string, string>): Guide {
+  const p = proposalsOf(content);
+  const total = p.pending + p.accepted + p.discarded;
+  const steps = SOURCE_STEPS;
+  const checks: (() => Missing[])[] = [
+    () =>
+      has(sec.get("resumo")) && total > 0
+        ? []
+        : [{ id: "extracao", label: "Extração do Claude (resumo e propostas)", ask: "", action: "extract" }],
+    () =>
+      p.pending === 0
+        ? []
+        : [{ id: "revisao", label: `Revisar ${p.pending} ${p.pending === 1 ? "proposta" : "propostas"} (aceite ou descarte cada uma)`, ask: "", action: "review" }],
+    () => {
+      const n = p.accepted - p.applied;
+      return n === 0 ? [] : [{ id: "aplicacao", label: `Aplicar ${n} ${n === 1 ? "proposta aceita" : "propostas aceitas"} nas specs`, ask: "", action: "apply" }];
+    },
+  ];
+  let reached = 0;
+  let missing: Missing[] = [];
+  for (const c of checks) {
+    missing = c();
+    if (missing.length) break;
+    reached++;
+  }
+  return { kind: "source", steps, reached, current: reached < steps.length ? steps[reached] : null, missing, doubts: 0 };
+}
+
 /** Etapa e pendências de um documento; nulo para arquivos que não são feature nem módulo. */
 export function analyzeDoc(rel: string, content: string): Guide | null {
   const kind = kindOfPath(rel);
   if (!kind) return null;
   const sec = sectionsOf(content);
+  if (kind === "source") return analyzeSource(content, sec);
   const defs = kind === "feature" ? featureSteps : moduleSteps;
   const steps = kind === "feature" ? FEATURE_STEPS : MODULE_STEPS;
   const doubts = doubtsOf(sec);
