@@ -69,6 +69,16 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
   const active = props.activeId === c.id;
   const working = props.job?.kind === "comment" && props.job.commentId === c.id;
   const st = STATUS[c.status];
+  const canSend = props.claudeEnabled && !props.busy && c.status !== "resolved";
+
+  const submitReply = async (andSend: boolean) => {
+    const body = reply.trim();
+    if (!body) return;
+    await props.onReply(c.id, body);
+    setReply("");
+    setReplying(false);
+    if (andSend) await props.onSend(c.id);
+  };
 
   return (
     <div
@@ -121,21 +131,34 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
 
       {replying && (
         <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-          <textarea className={input} rows={2} value={reply} onChange={(e) => setReply(e.target.value)} autoFocus placeholder="Sua resposta" />
-          <div className="flex justify-end gap-2">
-            <button className={btn} onClick={() => setReplying(false)}>
+          <textarea
+            className={input}
+            rows={2}
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            autoFocus
+            placeholder="Sua resposta"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && reply.trim()) void submitReply(canSend);
+              if (e.key === "Escape") setReplying(false);
+            }}
+          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button className={btnGhost} onClick={() => setReplying(false)}>
               Cancelar
             </button>
+            {canSend && (
+              <button className={btn} disabled={!reply.trim()} onClick={() => void submitReply(false)} title="Registra a resposta sem chamar o Claude">
+                Só responder
+              </button>
+            )}
             <button
-              className={btnPrimary}
+              className={canSend ? btnClaude : btnPrimary}
               disabled={!reply.trim()}
-              onClick={async () => {
-                await props.onReply(c.id, reply.trim());
-                setReply("");
-                setReplying(false);
-              }}
+              onClick={() => void submitReply(canSend)}
+              title={canSend ? "Registra a resposta e já envia para o Claude" : undefined}
             >
-              Responder
+              {canSend ? "Responder e enviar ao Claude" : "Responder"}
             </button>
           </div>
         </div>
