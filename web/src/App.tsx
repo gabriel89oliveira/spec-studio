@@ -313,7 +313,7 @@ export default function App() {
                 </Fragment>
               ))}
             </nav>
-            <div role="tablist" aria-label="Modo" className="flex shrink-0 gap-0.5 rounded-md bg-desk p-0.5">
+            <div role="tablist" aria-label="Modo" className="flex shrink-0 gap-0.5 rounded-md bg-wash p-0.5">
               {tab("view", "Ler")}
               {tab("edit", "Editar")}
               {tab("history", "Histórico")}

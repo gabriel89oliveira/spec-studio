@@ -12,7 +12,7 @@ export const btnPrimary = `${base} bg-accent text-accent-ink hover:bg-accent/90`
 export const btnClaude = `${base} bg-claude text-claude-ink hover:bg-claude/90`;
 
 /** Ação de texto, sem caixa. */
-export const btnGhost = `${base} px-2 text-ink-2 hover:bg-desk hover:text-ink`;
+export const btnGhost = `${base} px-2 text-ink-2 hover:bg-wash hover:text-ink`;
 
 export const btnDanger = `${base} bg-danger text-sheet hover:bg-danger/90`;
 

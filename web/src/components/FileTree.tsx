@@ -61,7 +61,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
   return (
     <button
       className={`relative flex w-full items-start gap-2 rounded-md py-[5px] pr-2 text-left text-[13.5px] ${
-        active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-desk hover:text-ink"
+        active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-wash hover:text-ink"
       }`}
       style={{ paddingLeft: `${6 + depth * INDENT}px` }}
       onClick={() => props.onOpen(node.path)}

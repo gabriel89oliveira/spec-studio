@@ -12,6 +12,7 @@ export default {
       colors: {
         desk: token("desk"),
         panel: token("panel"),
+        wash: token("wash"),
         sheet: token("sheet"),
         ink: { DEFAULT: token("ink"), 2: token("ink-2"), 3: token("ink-3") },
         line: { DEFAULT: token("line"), strong: token("line-strong") },

@@ -91,7 +91,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
                     aria-hidden="true"
                   />
                   <button
-                    className={`relative flex w-full gap-3 py-2.5 pl-5 pr-4 text-left ${isSel ? "bg-accent-soft" : "hover:bg-desk"}`}
+                    className={`relative flex w-full gap-3 py-2.5 pl-5 pr-4 text-left ${isSel ? "bg-accent-soft" : "hover:bg-wash"}`}
                     onClick={() => setSelected(e)}
                     aria-current={isSel ? "true" : undefined}
                   >
@@ -126,7 +126,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
                   </div>
                 </div>
                 {confirm ? (
-                  <div className="flex items-center gap-2 rounded-md border border-line bg-desk/60 px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-md border border-line bg-wash px-3 py-2">
                     <span className="text-xs text-ink-2">Criar um commit que desfaz esta alteração?</span>
                     <button className={btn} onClick={() => setConfirm(false)}>
                       Cancelar

@@ -54,7 +54,7 @@ function Fold({ lines }: { lines: Line[] }) {
   const [open, setOpen] = useState(false);
   if (open) return <Lines lines={lines} />;
   return (
-    <button className="w-full border-y border-dashed border-line bg-desk/60 py-1 text-center font-sans text-2xs text-ink-3 hover:text-ink" onClick={() => setOpen(true)}>
+    <button className="w-full border-y border-dashed border-line bg-wash py-1 text-center font-sans text-2xs text-ink-3 hover:text-ink" onClick={() => setOpen(true)}>
       {lines.length} linhas sem mudança (mostrar)
     </button>
   );

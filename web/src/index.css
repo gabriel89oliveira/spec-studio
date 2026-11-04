@@ -12,7 +12,8 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
   --desk: 230 235 240;
-  --panel: 245 247 249;
+  --panel: 255 255 255;
+  --wash: 243 246 250;
   --sheet: 255 255 255;
   --ink: 29 40 54;
   --ink-2: 74 88 104;
@@ -49,6 +50,7 @@
   :root {
     --desk: 13 27 44;
     --panel: 15 31 50;
+    --wash: 24 44 68;
     --sheet: 19 37 59;
     --ink: 222 231 242;
     --ink-2: 165 182 201;
@@ -318,7 +320,7 @@ body {
   font-size: 0.86em;
   padding: 0.05em 0.3em;
   border-radius: 4px;
-  background: rgb(var(--desk));
+  background: rgb(var(--wash));
   overflow-wrap: anywhere;
 }
 .md-sm strong {
