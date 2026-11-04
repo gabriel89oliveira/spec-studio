@@ -34,7 +34,6 @@ export default {
         sm: ["14px", "20px"],
       },
       boxShadow: {
-        sheet: "var(--shadow-sheet)",
         lift: "var(--shadow-lift)",
       },
     },
