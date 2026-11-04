@@ -285,7 +285,7 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-[rgb(var(--canvas))] text-ink">
       <Header project={project} busy={busy} lastError={lastError} connected={connected} />
-      <div className="flex min-h-0 flex-1 gap-3 px-3 pb-3">
+      <div className="flex min-h-0 flex-1 gap-3 p-3">
         <FileTree
           tree={tree}
           openPath={openPath}

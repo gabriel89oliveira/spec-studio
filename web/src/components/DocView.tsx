@@ -30,7 +30,7 @@ type Props = {
 export function Sheet({ children, wide, flush }: { children: React.ReactNode; wide?: boolean; flush?: boolean }) {
   return (
     <div className={`mx-auto px-2 pb-8 xl:px-4 ${wide ? "max-w-[1100px]" : "max-w-[780px]"}`}>
-      <article className={`relative rounded-2xl bg-sheet shadow-sheet ${flush ? "" : "px-8 py-10 xl:px-12 xl:py-12 2xl:px-16 2xl:py-14"}`}>
+      <article className={`relative bg-sheet shadow-sheet ${flush ? "" : "px-8 py-10 xl:px-12 xl:py-12 2xl:px-16 2xl:py-14"}`}>
         {children}
       </article>
     </div>

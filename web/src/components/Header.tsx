@@ -26,7 +26,7 @@ export function Header({ project, busy, lastError, connected }: Props) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between px-5">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line/70 bg-panel px-5">
       <div className="flex min-w-0 items-baseline gap-3">
         <span className="text-[13px] font-medium text-ink-3">Spec Studio</span>
         <span className="text-line-strong" aria-hidden="true">
