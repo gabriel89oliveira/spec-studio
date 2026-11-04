@@ -78,7 +78,7 @@ export function DiffView({ before, after }: { before: string; after: string }) {
   const changed = blocks.some((b) => b.kind === "lines" && b.lines.some((l) => l.kind !== "same"));
   if (!changed) return <p className="text-sm text-ink-3">Nenhuma diferença neste arquivo.</p>;
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-sheet py-1 font-mono text-[12.5px] leading-[1.7]" data-testid="diff">
+    <div className="overflow-hidden rounded-xl border border-line bg-sheet py-1.5 font-mono text-[12.5px] leading-[1.7]" data-testid="diff">
       {blocks.map((b, i) => (b.kind === "fold" ? <Fold key={i} lines={b.lines} /> : <Lines key={i} lines={b.lines} />))}
     </div>
   );

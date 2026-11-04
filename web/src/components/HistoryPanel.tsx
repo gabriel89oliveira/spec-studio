@@ -72,13 +72,13 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
     <Sheet wide flush>
       <div className="flex min-h-[70vh]">
         <div className="w-80 shrink-0 border-r border-line">
-          <div className="border-b border-line px-5 py-3.5">
+          <div className="px-5 pb-2 pt-5">
             <div className="text-[17px] font-semibold text-ink">Histórico</div>
             <div className="text-xs text-ink-3">
               {entries ? `${entries.length} ${entries.length === 1 ? "alteração" : "alterações"} neste arquivo` : "Carregando…"}
             </div>
           </div>
-          <ol className="py-1" data-testid="history-list">
+          <ol className="px-2 pb-3" data-testid="history-list">
             {entries?.length === 0 && <li className="px-5 py-4 text-sm text-ink-3">Este arquivo ainda não tem alterações registradas.</li>}
             {entries?.map((e, i) => {
               const o = ORIGIN[e.origin];
@@ -87,15 +87,18 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
                 <li key={e.hash} className="relative">
                   {/* linha do tempo */}
                   <span
-                    className={`absolute left-[25px] w-px bg-line ${i === 0 ? "top-5" : "top-0"} ${i === entries.length - 1 ? "h-5" : "bottom-0"}`}
+                    className={`absolute left-[21px] w-px bg-line ${i === 0 ? "top-5" : "top-0"} ${i === entries.length - 1 ? "h-5" : "bottom-0"}`}
                     aria-hidden="true"
                   />
                   <button
-                    className={`relative flex w-full gap-3 py-2.5 pl-5 pr-4 text-left ${isSel ? "bg-accent-soft" : "hover:bg-wash"}`}
+                    className={`relative flex w-full gap-3 rounded-xl py-2.5 pl-4 pr-3 text-left transition-colors ${isSel ? "bg-accent-soft" : "hover:bg-wash"}`}
                     onClick={() => setSelected(e)}
                     aria-current={isSel ? "true" : undefined}
                   >
-                    <span className={`mt-[5px] h-[11px] w-[11px] shrink-0 rounded-full ring-[3px] ring-sheet ${o.dot}`} aria-hidden="true" />
+                    <span
+                      className={`mt-[5px] h-[11px] w-[11px] shrink-0 rounded-full ring-[3px] ${isSel ? "ring-accent-soft" : "ring-sheet"} ${o.dot}`}
+                      aria-hidden="true"
+                    />
                     <span className="min-w-0">
                       <span className="line-clamp-2 text-[13.5px] leading-snug text-ink">{e.message}</span>
                       <span className="mt-0.5 block text-xs text-ink-3">
@@ -126,7 +129,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
                   </div>
                 </div>
                 {confirm ? (
-                  <div className="flex items-center gap-2 rounded-md border border-line bg-wash px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-line bg-wash px-3 py-2">
                     <span className="text-xs text-ink-2">Criar um commit que desfaz esta alteração?</span>
                     <button className={btn} onClick={() => setConfirm(false)}>
                       Cancelar

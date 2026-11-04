@@ -1,23 +1,23 @@
 const base =
-  "inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 h-7 text-xs font-medium whitespace-nowrap " +
+  "inline-flex items-center justify-center gap-1.5 rounded-lg h-[30px] text-xs font-medium whitespace-nowrap " +
   "transition-colors disabled:cursor-not-allowed disabled:opacity-45";
 
 /** Ação secundária: contorno discreto. */
-export const btn = `${base} border border-line bg-sheet text-ink-2 hover:border-line-strong hover:text-ink`;
+export const btn = `${base} px-3 border border-line bg-sheet text-ink-2 hover:border-line-strong hover:text-ink`;
 
 /** Ação principal do usuário (azul da planta). */
-export const btnPrimary = `${base} bg-accent text-accent-ink hover:bg-accent/90`;
+export const btnPrimary = `${base} px-3 bg-accent text-accent-ink hover:bg-accent/90`;
 
 /** Ação que aciona o Claude (verde-petróleo, a cor de tudo que o Claude faz). */
-export const btnClaude = `${base} bg-claude text-claude-ink hover:bg-claude/90`;
+export const btnClaude = `${base} px-3 bg-claude text-claude-ink hover:bg-claude/90`;
 
 /** Ação de texto, sem caixa. */
-export const btnGhost = `${base} px-2 text-ink-2 hover:bg-wash hover:text-ink`;
+export const btnGhost = `${base} px-2.5 text-ink-2 hover:bg-wash hover:text-ink`;
 
-export const btnDanger = `${base} bg-danger text-sheet hover:bg-danger/90`;
+export const btnDanger = `${base} px-3 bg-danger text-sheet hover:bg-danger/90`;
 
 export const input =
-  "w-full rounded-md border border-line bg-sheet px-2.5 py-2 text-sm text-ink placeholder:text-ink-3 " +
+  "w-full rounded-lg border border-line bg-sheet px-3 py-2 text-sm text-ink placeholder:text-ink-3 " +
   "focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-60";
 
 export function formatDate(iso: string): string {

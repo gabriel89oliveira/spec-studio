@@ -31,13 +31,15 @@ const STATUS: Record<Comment["status"], { text: string; bar: string }> = {
 
 function Quote({ text }: { text: string }) {
   return (
-    <blockquote className="line-clamp-3 border-l-2 border-mark pl-2.5 text-[14px] italic leading-snug text-ink-2">{text}</blockquote>
+    <blockquote className="line-clamp-3 rounded-r-md border-l-2 border-mark bg-mark-soft/40 py-1 pl-2.5 pr-2 text-[13.5px] italic leading-snug text-ink-2">
+      {text}
+    </blockquote>
   );
 }
 
 function LiveWork({ job, onCancel }: { job: LiveJob; onCancel: () => void }) {
   return (
-    <div className="space-y-1.5 rounded-md bg-claude-soft px-3 py-2.5" data-testid="comment-live">
+    <div className="space-y-1.5 rounded-lg bg-claude-soft px-3 py-2.5" data-testid="comment-live">
       <div className="flex items-center gap-2 text-xs font-semibold text-claude">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-claude" aria-hidden="true" />
         Claude trabalhando
@@ -71,8 +73,8 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
   return (
     <div
       data-comment-id={c.id}
-      className={`relative overflow-hidden rounded-lg border bg-sheet py-3 pl-4 pr-3 text-sm ${
-        active ? "border-accent/70 ring-2 ring-accent/15" : "border-line hover:border-line-strong"
+      className={`relative overflow-hidden rounded-xl border bg-sheet py-3.5 pl-4 pr-3 text-sm transition-shadow ${
+        active ? "border-accent/60 shadow-[var(--shadow-panel)] ring-2 ring-accent/15" : "border-line/80 hover:border-line-strong"
       } ${orphan ? "" : "cursor-pointer"}`}
       onClick={() => !orphan && props.onFocus(c.id)}
     >
@@ -140,10 +142,10 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
       )}
 
       {!replying && !working && (
-        <div className="mt-3 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-3 flex flex-wrap items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
           {c.status !== "resolved" && (
             <button
-              className={`${btnClaude} mr-1`}
+              className={btnClaude}
               disabled={props.busy || !props.claudeEnabled}
               title={!props.claudeEnabled ? "Defina ANTHROPIC_API_KEY no .env" : "O Claude faz o que o comentário pede"}
               onClick={() => void props.onSend(c.id)}
@@ -180,7 +182,7 @@ function NewComment({ anchor, onCreate, onCancel }: { anchor: Anchor; onCreate: 
     if (ok) setBody("");
   };
   return (
-    <div className="space-y-2.5 rounded-lg border border-accent/60 bg-sheet p-3 shadow-lift ring-2 ring-accent/10" data-testid="new-comment">
+    <div className="space-y-3 rounded-xl border border-accent/60 bg-sheet p-3.5 shadow-lift ring-2 ring-accent/10" data-testid="new-comment">
       <div className="text-[15px] font-semibold text-ink">Novo comentário</div>
       <Quote text={anchor.quote} />
       <textarea
@@ -228,7 +230,7 @@ function Section({
   const [open, setOpen] = useState(!collapsed);
   if (items.length === 0) return null;
   return (
-    <section className="space-y-2">
+    <section className="space-y-2.5">
       <button className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink" onClick={() => setOpen(!open)} aria-expanded={open}>
         <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${open ? "rotate-90" : ""}`} />
         {title}
@@ -249,7 +251,7 @@ export function CommentsPanel(props: Props) {
   const resolved = comments.filter((c) => c.status === "resolved");
 
   return (
-    <div className="space-y-5 p-3" data-testid="comments-panel">
+    <div className="space-y-5 p-3.5" data-testid="comments-panel">
       {props.pending && <NewComment anchor={props.pending} onCreate={props.onCreate} onCancel={props.onCancelPending} />}
       {comments.length === 0 && !props.pending && (
         <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">

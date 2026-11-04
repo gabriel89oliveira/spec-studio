@@ -36,11 +36,12 @@
   --del: 159 38 28;
   --del-soft: 252 233 231;
 
-  --canvas: 245 247 250;
+  --canvas: 242 245 248;
   --hl: rgb(255 214 51 / 0.42);
   --hl-active: rgb(255 200 20 / 0.75);
   --shadow-sheet: 0 0 0 1px rgb(29 40 54 / 0.06), 0 1px 3px rgb(29 40 54 / 0.05), 0 18px 40px -26px rgb(29 40 54 / 0.2);
   --shadow-lift: 0 6px 18px -8px rgb(29 40 54 / 0.25);
+  --shadow-panel: 0 1px 2px rgb(29 40 54 / 0.04), 0 6px 20px -12px rgb(29 40 54 / 0.12);
   color-scheme: light;
 }
 
@@ -71,11 +72,12 @@
     --del: 255 150 140;
     --del-soft: 74 32 36;
 
-    --canvas: 13 27 44;
+    --canvas: 9 20 34;
     --hl: rgb(255 214 102 / 0.3);
     --hl-active: rgb(255 214 102 / 0.58);
     --shadow-sheet: 0 0 0 1px rgb(var(--line)), 0 18px 40px -22px rgb(0 0 0 / 0.7);
     --shadow-lift: 0 8px 22px -10px rgb(0 0 0 / 0.6);
+    --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -14px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
@@ -94,11 +96,6 @@ body {
   background: rgb(var(--panel));
   -webkit-font-smoothing: antialiased;
   font-kerning: normal;
-}
-
-/* Fundo da área do documento: liso, um tom abaixo do branco da folha. */
-.canvas {
-  background-color: rgb(var(--canvas));
 }
 
 :focus-visible {
@@ -228,8 +225,8 @@ body {
 .md code {
   font-family: var(--font-mono);
   font-size: 0.82em;
-  padding: 0.1em 0.35em;
-  border-radius: 4px;
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
   background: rgb(var(--desk));
   color: rgb(var(--ink));
 }
@@ -239,7 +236,7 @@ body {
   line-height: 1.6;
   margin: 0 0 18px;
   padding: 14px 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   background: rgb(var(--desk));
   border: 1px solid rgb(var(--line));
   overflow-x: auto;
@@ -302,8 +299,8 @@ body {
 .md-sm code {
   font-family: var(--font-mono);
   font-size: 0.86em;
-  padding: 0.05em 0.3em;
-  border-radius: 4px;
+  padding: 0.08em 0.35em;
+  border-radius: 6px;
   background: rgb(var(--wash));
   overflow-wrap: anywhere;
 }

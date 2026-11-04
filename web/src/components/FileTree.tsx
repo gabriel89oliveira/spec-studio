@@ -33,7 +33,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
     return (
       <div>
         <button
-          className="group flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[13px] font-medium text-ink-2 hover:text-ink"
+          className="group flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-medium text-ink-2 hover:text-ink"
           style={{ paddingLeft: `${6 + depth * INDENT}px` }}
           onClick={() => setOpen(!open)}
           aria-expanded={open}
@@ -60,7 +60,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
   const changed = props.changed.has(node.path);
   return (
     <button
-      className={`relative flex w-full items-start gap-2 rounded-md py-[5px] pr-2 text-left text-[13.5px] ${
+      className={`relative my-px flex w-full items-start gap-2 rounded-lg py-1.5 pr-2 text-left text-[13.5px] ${
         active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-wash hover:text-ink"
       }`}
       style={{ paddingLeft: `${6 + depth * INDENT}px` }}
@@ -69,7 +69,6 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
       data-path={node.path}
       aria-current={active ? "page" : undefined}
     >
-      {active && <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-accent" aria-hidden="true" />}
       <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />
       <span className="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere] line-clamp-2">{displayName(node.name)}</span>
       {!!node.openComments && (
@@ -111,7 +110,7 @@ function NewItemForm({
   };
 
   return (
-    <div className="mx-2 mb-2 space-y-2.5 rounded-lg border border-line bg-sheet p-3 shadow-lift">
+    <div className="mx-2 mb-2 space-y-2.5 rounded-xl border border-line bg-sheet p-3.5 shadow-lift">
       <div className="text-[15px] font-semibold text-ink">{kind === "feature" ? "Nova feature" : "Novo módulo"}</div>
       <label className="block space-y-1">
         <span className="text-xs text-ink-2">Nome</span>
@@ -161,8 +160,8 @@ export function FileTree(props: Props) {
   const modules = useMemo(() => modulesOf(props.tree), [props.tree]);
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-panel 2xl:w-64">
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
+    <aside className="flex w-60 shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
         {props.tree.map((n) => (
           <Node key={n.path} node={n} depth={0} props={props} />
         ))}
@@ -178,7 +177,7 @@ export function FileTree(props: Props) {
           }}
         />
       )}
-      <div className="flex gap-1 border-t border-line p-2">
+      <div className="flex gap-1.5 border-t border-line/70 p-2.5">
         <button
           className={`${btnGhost} flex-1`}
           disabled={!props.canCreate}

@@ -95,7 +95,7 @@ export function Editor({ doc, readOnly, diskChanged, onSaved, onClose, onReload,
           }
         }}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-t-[3px] border-b border-line bg-sheet/95 px-5 py-2.5 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-t-2xl border-b border-line bg-sheet/95 px-5 py-3 backdrop-blur">
           <span className={`flex items-center gap-2 text-xs ${dirty && !readOnly ? "text-ink" : "text-ink-3"}`}>
             {dirty && !readOnly && <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />}
             {statusText}

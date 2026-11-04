@@ -266,8 +266,8 @@ export default function App() {
     <button
       role="tab"
       aria-selected={mode === id}
-      className={`h-7 rounded-[5px] px-3 text-xs font-medium transition-colors disabled:opacity-45 ${
-        mode === id ? "bg-sheet text-ink shadow-[0_1px_2px_rgb(var(--ink)/0.14)]" : "text-ink-2 hover:text-ink"
+      className={`h-7 rounded-lg px-3.5 text-xs font-medium transition-colors disabled:opacity-45 ${
+        mode === id ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"
       }`}
       disabled={!live.doc}
       onClick={() => {
@@ -283,9 +283,9 @@ export default function App() {
   const openCount = comments.filter((c) => c.status !== "resolved").length;
 
   return (
-    <div className="flex h-screen flex-col bg-panel text-ink">
+    <div className="flex h-screen flex-col bg-[rgb(var(--canvas))] text-ink">
       <Header project={project} busy={busy} lastError={lastError} connected={connected} />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 gap-3 px-3 pb-3">
         <FileTree
           tree={tree}
           openPath={openPath}
@@ -299,7 +299,7 @@ export default function App() {
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-line bg-panel px-4">
+          <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
             <nav aria-label="Caminho do arquivo" className="flex min-w-0 items-center gap-1.5 text-xs text-ink-3" data-testid="open-path">
               {crumbs.length === 0 && "Nenhum arquivo aberto"}
               {crumbs.map((c, i) => (
@@ -313,7 +313,11 @@ export default function App() {
                 </Fragment>
               ))}
             </nav>
-            <div role="tablist" aria-label="Modo" className="flex shrink-0 gap-0.5 rounded-md bg-wash p-0.5">
+            <div
+              role="tablist"
+              aria-label="Modo"
+              className="flex shrink-0 gap-1 rounded-xl border border-line/70 bg-panel p-1 shadow-[var(--shadow-panel)]"
+            >
               {tab("view", "Ler")}
               {tab("edit", "Editar")}
               {tab("history", "Histórico")}
@@ -321,16 +325,16 @@ export default function App() {
           </div>
 
           {notice && (
-            <div className="flex items-start gap-3 border-b border-danger/25 bg-danger-soft px-4 py-2.5 text-xs text-danger" data-testid="notice" role="alert">
+            <div className="mx-2 mb-3 flex items-start gap-3 rounded-xl border border-danger/25 bg-danger-soft px-4 py-2.5 text-xs text-danger" data-testid="notice" role="alert">
               <span className="flex-1 whitespace-pre-wrap leading-snug">{notice}</span>
-              <button className="shrink-0 rounded p-0.5 hover:bg-danger/10" onClick={() => setNotice(null)} aria-label="Fechar aviso">
+              <button className="shrink-0 rounded-md p-0.5 hover:bg-danger/10" onClick={() => setNotice(null)} aria-label="Fechar aviso">
                 <IconClose className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
           {updateBanner && (
             <div
-              className={`flex items-center gap-3 border-b px-4 py-2 text-xs ${
+              className={`mx-2 mb-3 flex items-center gap-3 rounded-xl border px-4 py-2 text-xs ${
                 live.update?.source === "claude" ? "border-claude/25 bg-claude-soft text-claude" : "border-accent/25 bg-accent-soft text-accent"
               }`}
               data-testid="update-banner"
@@ -340,13 +344,13 @@ export default function App() {
               <button className={btn} onClick={() => setMode("changes")}>
                 Ver alterações
               </button>
-              <button className="shrink-0 rounded p-0.5 hover:bg-ink/5" onClick={live.clearUpdate} aria-label="Fechar aviso">
+              <button className="shrink-0 rounded-md p-0.5 hover:bg-ink/5" onClick={live.clearUpdate} aria-label="Fechar aviso">
                 <IconClose className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
 
-          <div className="canvas min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {live.error && (
               <Sheet>
                 <p className="text-sm text-danger">{live.error}</p>
@@ -405,15 +409,15 @@ export default function App() {
           </div>
         </main>
 
-        <aside className="flex w-[360px] shrink-0 flex-col border-l border-line bg-panel 2xl:w-[380px]">
-          <div role="tablist" aria-label="Painel" className="flex h-11 shrink-0 items-end gap-5 border-b border-line px-4">
+        <aside className="flex w-[360px] shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-[380px]">
+          <div role="tablist" aria-label="Painel" className="flex shrink-0 items-center gap-1 border-b border-line/70 p-2">
             {(["comments", "chat"] as const).map((t) => (
               <button
                 key={t}
                 role="tab"
                 aria-selected={rightTab === t}
-                className={`-mb-px flex items-center gap-1.5 border-b-2 pb-2.5 text-[13px] font-medium ${
-                  rightTab === t ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink"
+                className={`flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors ${
+                  rightTab === t ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"
                 }`}
                 onClick={() => setRightTab(t)}
               >
