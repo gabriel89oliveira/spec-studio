@@ -44,14 +44,17 @@ Cada módulo e cada feature nasce pequeno e cresce por etapas. Você não precis
 |---|---|
 | Feature | Ideia → Entendida → Detalhada → Pronta para dev (depois: Em desenvolvimento, Concluída, Cancelada) |
 | Módulo | Ideia → Mapeado → Detalhado |
+| Conceito | Visão → Escopo → Requisitos |
+| Matriz de permissões | Perfis → Ações → Preenchida |
 
-1. Preencha as seções 1 a 5 do Conceito e liste os módulos (seção 6).
+1. Comece pelo Conceito: visão, perfis, escopo e o mapa de módulos.
 2. Crie os módulos e leve cada um até "Ideia". Só depois aprofunde.
 3. Crie as features dentro dos módulos e avance por etapa. Detalhe por completo só as que vão entrar em desenvolvimento.
 4. Toda dúvida que dependa do time vira uma decisão com ID em `decisoes.md`.
 5. Monte a Matriz de permissões assim que os perfis estiverem definidos.
 6. Preencha a seção Comandos do `CLAUDE.md` quando a stack estiver definida.
-7. Peça uma feature por vez à IA, só depois de "Pronta para dev".
+7. Peça uma feature por vez à IA, só depois de "Pronta para dev". Na feature, o botão **Pacote para desenvolvimento** reúne contexto, regras, permissões, decisões e plano de testes para colar na IA que vai programar.
+8. Acompanhe tudo em **Visão geral** e **Problemas** (contradições entre os documentos) no topo da árvore.
 
 Avance primeiro em largura: todos os módulos em "Ideia" antes de detalhar qualquer um a fundo. Quando descer de nível revelar algo que muda o nível de cima (um módulo a dividir, um perfil novo), ajuste o nível superior na hora e, se a mudança for relevante, registre como decisão.
 

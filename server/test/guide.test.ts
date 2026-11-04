@@ -63,7 +63,7 @@ describe("guia de módulo", () => {
 });
 
 it("só analisa features e módulos", () => {
-  expect(analyzeDoc("docs/CONCEITO.md", "# x")).toBeNull();
+  expect(analyzeDoc("docs/README.md", "# x")).toBeNull();
   expect(analyzeDoc("docs/_templates/feature.md", "# x")).toBeNull();
 });
 
@@ -92,5 +92,49 @@ describe("guia de fonte", () => {
   it("ignora marcas dentro de bloco de código", () => {
     const c = "# S\n\n## Resumo\nx\n\n```\n- [ ] exemplo\n```\n- [x] real → F01\n";
     expect(analyzeDoc("docs/fontes/S02-y.md", c)).toMatchObject({ reached: 3 });
+  });
+});
+
+describe("guia do Conceito", () => {
+  const C = "docs/CONCEITO.md";
+  const empty = "# [Nome do projeto] — Conceito\n\n## Resumo\n\n## Problema\n\n## Perfis de usuário\n| Perfil | Quem é | O que precisa fazer |\n|---|---|---|\n\n## Solução\n\n## Escopo\n**Dentro (MVP)**\n\n**Fora (por enquanto)**\n\n## Mapa de módulos\n| ID | Módulo | Responsabilidade |\n|---|---|---|\n\n## Requisitos gerais\n\n## Diretrizes técnicas\n";
+  const visao = empty
+    .replace("[Nome do projeto]", "DriveB")
+    .replace("## Resumo\n", "## Resumo\nPlataforma de manutenção de frotas.\n")
+    .replace("## Problema\n", "## Problema\nOrdens se perdem em planilhas.\n")
+    .replace("|---|---|---|\n\n## Solução", "|---|---|---|\n| Gestor | Dono da frota | Acompanhar |\n\n## Solução");
+  const escopo = visao
+    .replace("## Solução\n", "## Solução\nUm painel único.\n")
+    .replace("**Dentro (MVP)**\n", "**Dentro (MVP)**\n- Abrir ordem\n")
+    .replace("**Fora (por enquanto)**\n", "**Fora (por enquanto)**\n- Pagamento\n")
+    .replace("| ID | Módulo | Responsabilidade |\n|---|---|---|\n", "| ID | Módulo | Responsabilidade |\n|---|---|---|\n| M01 | Ordens | Abrir e acompanhar |\n");
+
+  it("template vazio pede o nome, resumo, problema e perfis", () => {
+    const g = analyzeDoc(C, empty)!;
+    expect(g.kind).toBe("concept");
+    expect(g.reached).toBe(0);
+    expect(g.missing.map((m) => m.id)).toEqual(["nome", "resumo", "problema", "perfis"]);
+  });
+  it("avança por Visão, Escopo e Requisitos", () => {
+    expect(analyzeDoc(C, visao)).toMatchObject({ reached: 1, current: "Escopo" });
+    expect(analyzeDoc(C, visao)!.missing.map((m) => m.id)).toEqual(["solucao", "escopo", "modulos"]);
+    expect(analyzeDoc(C, escopo)).toMatchObject({ reached: 2, current: "Requisitos" });
+    const done = escopo.replace("## Requisitos gerais\n", "## Requisitos gerais\n- LGPD\n").replace("## Diretrizes técnicas\n", "## Diretrizes técnicas\nNode e Postgres.\n");
+    expect(analyzeDoc(C, done)).toMatchObject({ reached: 3, current: null });
+  });
+});
+
+describe("guia da matriz de permissões", () => {
+  const P = "docs/permissoes.md";
+  const base = "# Matriz\n\n## Ações\n| Ação | Módulo | Condição |\n|---|---|---|\n";
+  it("sem perfis, depois sem ações, depois células vazias, depois pronta", () => {
+    expect(analyzeDoc(P, base)!.missing.map((m) => m.id)).toEqual(["perfis"]);
+    const comPerfis = "# Matriz\n\n## Ações\n| Ação | Módulo | Gestor | Mecânico | Condição |\n|---|---|---|---|---|\n";
+    expect(analyzeDoc(P, comPerfis)).toMatchObject({ reached: 1, current: "Ações" });
+    const vazia = comPerfis + "| Abrir ordem | M01 | S | | |\n";
+    const g = analyzeDoc(P, vazia)!;
+    expect(g).toMatchObject({ reached: 2, current: "Preenchida" });
+    expect(g.missing[0].label).toContain("1 célula");
+    expect(analyzeDoc(P, comPerfis + "| Abrir ordem | M01 | S | N | |\n")).toMatchObject({ reached: 3, current: null });
   });
 });

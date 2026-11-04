@@ -10,6 +10,9 @@ import type { Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
 import { analyzeDoc } from "./guide.js";
+import { checkProject } from "./consistency.js";
+import { loadProject } from "./project.js";
+import { devPack, overview, setStage, testPlan } from "./views.js";
 import { saveSource, SOURCE_TYPES } from "./sources.js";
 import { GitService } from "./git.js";
 import { JobRunner } from "./jobs.js";
@@ -87,6 +90,46 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
   app.get(
     "/api/tree",
     h((_req, res) => res.json(listTree(root, comments.openCounts()))),
+  );
+
+  app.get("/api/issues", h((_req, res) => res.json(checkProject(loadProject(root)))));
+
+  app.get(
+    "/api/overview",
+    h((_req, res) => {
+      const p = loadProject(root);
+      res.json(overview(p, checkProject(p)));
+    }),
+  );
+
+  app.get("/api/decisions", h((_req, res) => res.json(loadProject(root).decisions)));
+
+  app.get(
+    "/api/devpack",
+    h((req, res) => {
+      const id = String(req.query.feature ?? "");
+      const p = loadProject(root);
+      const pack = devPack(p, id);
+      const f = p.features.find((x) => x.id === id.toUpperCase())!;
+      res.json({ ...pack, testPlan: testPlan(f) });
+    }),
+  );
+
+  app.post(
+    "/api/stage",
+    h(async (req, res) => {
+      const body = parse(z.object({ path: z.string(), stage: z.string() }), req.body);
+      const { abs, rel } = resolveDocPath(root, body.path);
+      assertIdle();
+      const f = loadProject(root).features.find((x) => x.path === rel);
+      if (!f) throw new HttpError(404, "Só features têm etapa");
+      const doc = readDoc(abs, rel);
+      const content = setStage(f, body.stage, doc.content);
+      const { hash } = writeDoc(abs, rel, content, doc.hash);
+      tracker.mark(rel, hash, "manual");
+      const commit = config.autoCommit ? await git.commitPaths([rel], `etapa: ${f.id} → ${body.stage}`) : null;
+      res.json({ path: rel, hash, commit });
+    }),
   );
 
   app.get(

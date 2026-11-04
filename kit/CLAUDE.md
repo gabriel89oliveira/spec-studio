@@ -58,9 +58,52 @@ Quando o pedido começar com "Entrevista guiada" ou pedir para criar uma feature
 2. Faça **uma pergunta por vez**, curta e concreta, na ordem da tabela. Nunca liste todas as perguntas de uma vez.
 3. Assim que o usuário responder, grave a resposta no arquivo, na seção certa, com as palavras dele (só organize e corrija a forma). Depois faça a próxima pergunta.
 4. Se a resposta abrir uma dúvida que dependa do time, registre-a em **Dúvidas em aberto** do arquivo (uma linha) e, se for relevante para o projeto todo, proponha uma entrada em `docs/decisoes.md`.
-5. Quando a etapa ficar completa, diga qual etapa fechou, resuma em uma ou duas linhas o que ficou registrado e pergunte se o usuário quer seguir para a próxima. Quando a etapa Ideia de um módulo fechar, acrescente uma linha a ele no mapa de módulos (seção 6 do Conceito), com a responsabilidade que o usuário deu.
+5. Quando a etapa ficar completa, diga qual etapa fechou, resuma em uma ou duas linhas o que ficou registrado e pergunte se o usuário quer seguir para a próxima. Quando a etapa Ideia de um módulo fechar, acrescente uma linha a ele no mapa de módulos (seção Mapa de módulos do Conceito), com a responsabilidade que o usuário deu.
 6. Se o usuário disser que não sabe, não invente: anote como dúvida em aberto e passe à próxima pergunta.
-7. Em "Pronta para dev", confira antes de mudar a linha Etapa: ações citadas existem em `docs/permissoes.md`, termos novos estão no Glossário do Conceito, o módulo lista a relação com as outras features, e há ao menos um caso de erro por história. Liste o que faltar; só marque "Pronta para dev" com a confirmação do usuário.
+7. Na etapa Detalhada, acrescente à feature a seção `## Permissões`, uma linha por ação no formato `- Ação — Perfil 1, Perfil 2`, usando só perfis do Conceito, e garanta que a ação exista na matriz `docs/permissoes.md` (a plataforma cruza os dois).
+8. Em "Pronta para dev", confira antes de mudar a linha Etapa: ações citadas existem em `docs/permissoes.md`, termos novos estão na seção Glossário do Conceito (crie a seção no primeiro termo), o módulo lista a relação com as outras features, e há ao menos um caso de erro por história. Liste o que faltar; só marque "Pronta para dev" com a confirmação do usuário.
+
+## Conceito e matriz de permissões
+
+Os dois também são guiados, pela mesma entrevista (uma pergunta por vez, gravando cada resposta). Comece pelo Conceito, porque módulos e perfis nascem dele.
+
+| Etapa do Conceito | O que precisa estar escrito |
+|---|---|
+| Visão | Nome (no título), Resumo, Problema e ao menos um perfil na tabela Perfis de usuário |
+| Escopo | Solução, Escopo com **Dentro (MVP)** e **Fora (por enquanto)**, e ao menos um módulo no Mapa de módulos |
+| Requisitos | Requisitos gerais (segurança, LGPD, desempenho…) e Diretrizes técnicas |
+
+| Etapa da matriz | O que precisa estar escrito |
+|---|---|
+| Perfis | Uma coluna por perfil na tabela Ações (traga os do Conceito) |
+| Ações | Ao menos uma ação, com o módulo |
+| Preenchida | Todas as células de perfil com S (pode), N (não pode) ou C (pode, com condição, explicada na coluna Condição) |
+
+## Decisões
+
+`docs/decisoes.md` guarda uma decisão por seção, neste formato (a plataforma lê estes campos):
+
+```
+## D-001 — Pergunta em uma linha
+- **Status:** Aberta | Em discussão | Decidida | Substituída
+- **Afeta:** M01, F02
+- **Quem decide:** pessoa ou fórum
+- **Prazo:** AAAA-MM-DD
+
+**Contexto:** por que a pergunta surgiu.
+
+**Opções**
+1. **Opção A:** prós / contras
+2. **Opção B:** prós / contras
+
+**Decisão:** o que foi escolhido e por quê (só ao decidir)
+**Decidido em:** AAAA-MM-DD · **Por:** pessoas
+
+**Histórico**
+- AAAA-MM-DD — o que avançou
+```
+
+Deixe de fora o que ainda não existe (sem "Decisão" enquanto estiver aberta). Só marque Decidida com a confirmação do usuário.
 
 ## Fontes de contexto
 
@@ -96,7 +139,7 @@ Cada proposta é uma linha da ficha, com a origem:
 3. Confira as dependências citadas na spec. Se alguma não estiver Concluída, avise antes de começar.
 4. Mude a Etapa para **Em desenvolvimento**.
 5. Escreva um teste automatizado para cada critério de aceite, com o ID da história no nome (ex.: `US-03.1 rejeita agendamento sem data`). Inclua teste de acesso negado para cada perfil que a matriz não permite.
-6. Implemente o necessário para os testes passarem, respeitando regras de negócio, requisitos gerais (seção 7 do Conceito) e diretrizes técnicas (seção 8).
+6. Implemente o necessário para os testes passarem, respeitando regras de negócio, a seção Requisitos gerais e a seção Diretrizes técnicas do Conceito.
 7. Com todos os testes passando, resuma o que foi feito e peça confirmação antes de mudar a Etapa para **Concluída**.
 
 ## Nunca
@@ -113,7 +156,7 @@ Cada proposta é uma linha da ficha, com a origem:
 ## Quando faltar informação
 
 1. Pare e liste as perguntas de forma objetiva.
-2. Para cada pergunta que dependa de decisão do time, proponha uma entrada em `docs/decisoes.md` com status **Aberta**, próximo ID livre, contexto e opções. Adicione-a ao índice.
+2. Para cada pergunta que dependa de decisão do time, proponha uma entrada em `docs/decisoes.md` com status **Aberta**, próximo ID livre, contexto e opções, no formato da seção Decisões.
 3. Registre a dúvida em Dúvidas em aberto do documento, referenciando o ID da decisão.
 4. Continue apenas com a parte que claramente não depende da dúvida, e diga o que ficou de fora.
 
@@ -127,7 +170,7 @@ Cada proposta é uma linha da ficha, com a origem:
 ## Convenções de código
 
 - Use os termos do Glossário nos nomes de classes, tabelas, rotas e variáveis.
-- Stack, arquitetura e padrões: seção 8 do `docs/CONCEITO.md`.
+- Stack, arquitetura e padrões: seção Diretrizes técnicas de `docs/CONCEITO.md`.
 
 ## Comandos
 

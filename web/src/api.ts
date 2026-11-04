@@ -1,4 +1,4 @@
-import type { Anchor, ChatSession, Comment, FileDoc, HistoryEntry, Project, TreeNode } from "./types";
+import type { Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -46,6 +46,12 @@ export const api = {
   file: (path: string) => req<FileDoc>("GET", `/api/file?path=${q(path)}`),
   saveFile: (path: string, content: string, baseHash: string) =>
     req<{ path: string; hash: string; commit: string | null }>("PUT", "/api/file", { path, content, baseHash }),
+
+  issues: () => req<Issue[]>("GET", "/api/issues"),
+  overview: () => req<Overview>("GET", "/api/overview"),
+  decisions: () => req<Decision[]>("GET", "/api/decisions"),
+  devpack: (feature: string) => req<DevPack>("GET", `/api/devpack?feature=${q(feature)}`),
+  setStage: (path: string, stage: string) => req<{ path: string; hash: string }>("POST", "/api/stage", { path, stage }),
 
   importSource: (b: { name: string; type: string; fileName?: string; encoding: "base64" | "text"; content: string }) =>
     req<{ ficha: string; original: string; commit: string | null }>("POST", "/api/sources", b),

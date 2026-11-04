@@ -7,13 +7,15 @@ import { DocView, Sheet } from "./components/DocView";
 import { GuideCard } from "./components/GuideCard";
 import { applyTask, type TaskAction } from "./tasks";
 import { IconClose } from "./components/Icons";
+import { DecisionsScreen, DevPackModal, IssuesScreen, OverviewScreen, SCREEN_LABEL } from "./components/Screens";
+import { MatrixEditor } from "./components/MatrixEditor";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
 import { Header } from "./components/Header";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { useEvents } from "./hooks/useEvents";
 import { useLiveFile } from "./hooks/useLiveFile";
-import type { Anchor, ChatMessage, Comment, LiveJob, Project, TreeNode } from "./types";
+import type { Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode } from "./types";
 import { btn } from "./ui";
 
 type Mode = "view" | "edit" | "history" | "changes";
@@ -52,6 +54,10 @@ export default function App() {
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [editorDirty, setEditorDirty] = useState(false);
+  const [screen, setScreen] = useState<Screen | null>(null);
+  const [packFor, setPackFor] = useState<string | null>(null);
+  const [badges, setBadges] = useState({ issues: 0, decisions: 0 });
+  const [rev, setRev] = useState(0);
   const live = useLiveFile(openPath);
 
   const keyBase = project ? `spec-studio:${project.projectDir}` : null;
@@ -89,6 +95,7 @@ export default function App() {
     try {
       const t = await api.tree();
       setTree(t);
+      setRev((r) => r + 1);
       return t;
     } catch (e) {
       setNotice(errText(e));
@@ -132,6 +139,18 @@ export default function App() {
       setChanged(new Set(p.claude.lastChangedFiles.filter((f) => f !== first)));
     })();
   }, [refreshProject, refreshTree]);
+
+  // Contadores ao lado das telas do projeto.
+  useEffect(() => {
+    let alive = true;
+    api.overview().then(
+      (o) => alive && setBadges({ issues: o.counts.issues, decisions: o.counts.decisionsOpen }),
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
+  }, [rev]);
 
   useEffect(() => {
     if (keyBase && openPath) storage.set(`${keyBase}:open`, openPath);
@@ -207,9 +226,27 @@ export default function App() {
 
   // ---------------------------------------------------------------- ações
   const openFile = (p: string) => {
-    if (p === openPath) return;
+    if (p === openPath) {
+      setScreen(null);
+      return;
+    }
     if (mode === "edit" && editorDirty && !window.confirm("Descartar as alterações não salvas?")) return;
+    setScreen(null);
     setOpenPath(p);
+  };
+
+  const ask = (prompt: string, file?: string | null) => {
+    setRightTab("chat");
+    void sendChat(prompt, file ?? openPath);
+  };
+
+  const changeStage = async (stage: string) => {
+    const d = live.doc;
+    if (!d || busy) return;
+    if (await run(() => api.setStage(d.path, stage))) {
+      await live.reload();
+      await refreshTree();
+    }
   };
 
   const run = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
@@ -305,7 +342,9 @@ export default function App() {
     </button>
   );
 
-  const crumbs = openPath?.split("/") ?? [];
+  const crumbs = screen ? [SCREEN_LABEL[screen]] : (openPath?.split("/") ?? []);
+  const showDoc = !screen;
+  const featureId = live.doc?.guide?.kind === "feature" ? live.doc.path.match(/F\d+/i)?.[0]?.toUpperCase() : undefined;
   const openCount = comments.filter((c) => c.status !== "resolved").length;
 
   return (
@@ -314,7 +353,13 @@ export default function App() {
       <div className="flex min-h-0 flex-1 gap-3 p-3">
         <FileTree
           tree={tree}
-          openPath={openPath}
+          openPath={screen ? null : openPath}
+          screen={screen}
+          onScreen={(s) => {
+            if (mode === "edit" && editorDirty && !window.confirm("Descartar as alterações não salvas?")) return;
+            setScreen(s);
+          }}
+          badges={badges}
           changed={changed}
           canCreate={claudeEnabled && !busy}
           onOpen={openFile}
@@ -345,9 +390,9 @@ export default function App() {
               aria-label="Modo"
               className="flex shrink-0 gap-1 rounded-xl border border-line/70 bg-panel p-1 shadow-[var(--shadow-panel)]"
             >
-              {tab("view", "Ler")}
-              {tab("edit", "Editar")}
-              {tab("history", "Histórico")}
+              {showDoc && tab("view", "Ler")}
+              {showDoc && tab("edit", "Editar")}
+              {showDoc && tab("history", "Histórico")}
             </div>
           </div>
 
@@ -378,14 +423,17 @@ export default function App() {
           )}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {live.error && (
+            {screen === "overview" && <OverviewScreen refreshKey={String(rev)} busy={busy} claudeEnabled={claudeEnabled} onOpen={openFile} onAsk={ask} />}
+            {screen === "issues" && <IssuesScreen refreshKey={String(rev)} busy={busy} claudeEnabled={claudeEnabled} onOpen={openFile} onAsk={ask} />}
+            {screen === "decisions" && <DecisionsScreen refreshKey={String(rev)} busy={busy} claudeEnabled={claudeEnabled} onOpen={openFile} onAsk={ask} />}
+            {showDoc && live.error && (
               <Sheet>
                 <p className="text-sm text-danger">{live.error}</p>
               </Sheet>
             )}
-            {!live.doc && !live.error && openPath && <p className="p-8 text-center text-sm text-ink-3">Carregando…</p>}
-            {!openPath && <p className="p-8 text-center text-sm text-ink-3">Escolha um arquivo à esquerda.</p>}
-            {live.doc && mode === "view" && live.doc.guide && (
+            {showDoc && !live.doc && !live.error && openPath && <p className="p-8 text-center text-sm text-ink-3">Carregando…</p>}
+            {showDoc && !openPath && <p className="p-8 text-center text-sm text-ink-3">Escolha um arquivo à esquerda.</p>}
+            {showDoc && live.doc && mode === "view" && live.doc.guide && (
               <GuideCard
                 path={live.doc.path}
                 guide={live.doc.guide}
@@ -395,9 +443,23 @@ export default function App() {
                   setRightTab("chat");
                   void sendChat(p);
                 }}
+                onStage={featureId ? (st) => void changeStage(st) : undefined}
+                onPack={featureId ? () => setPackFor(featureId) : undefined}
               />
             )}
-            {live.doc && mode === "view" && (
+            {showDoc && live.doc && mode === "view" && live.doc.guide?.kind === "matrix" && (
+              <MatrixEditor
+                content={live.doc.content}
+                disabled={busy}
+                onSave={async (c) => {
+                  const d = live.doc!;
+                  const r = await run(() => api.saveFile(d.path, c, d.hash));
+                  if (r) await live.reload();
+                  return !!r;
+                }}
+              />
+            )}
+            {showDoc && live.doc && mode === "view" && live.doc.guide?.kind !== "matrix" && (
               <DocView
                 content={live.doc.content}
                 comments={comments}
@@ -408,7 +470,7 @@ export default function App() {
                 onTask={live.doc.guide?.kind === "source" && !busy ? stableTask : undefined}
               />
             )}
-            {live.doc && mode === "edit" && (
+            {showDoc && live.doc && mode === "edit" && (
               <EditorHost
                 key={live.doc.path}
                 doc={live.doc}
@@ -424,10 +486,10 @@ export default function App() {
                 onReload={live.reload}
               />
             )}
-            {live.doc && mode === "history" && openPath && (
+            {showDoc && live.doc && mode === "history" && openPath && (
               <HistoryPanel path={openPath} refreshKey={live.doc.hash} disabled={busy} onError={onHistoryError} />
             )}
-            {mode === "changes" && live.update && (
+            {showDoc && mode === "changes" && live.update && (
               <Sheet wide>
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -514,6 +576,7 @@ export default function App() {
           </div>
         </aside>
       </div>
+      {packFor && <DevPackModal featureId={packFor} onClose={() => setPackFor(null)} />}
     </div>
   );
 }

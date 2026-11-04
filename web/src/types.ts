@@ -12,7 +12,7 @@ export type TreeNode = {
 
 export type GuideMissing = { id: string; label: string; ask: string; section?: string; action?: "extract" | "review" | "apply" };
 export type Guide = {
-  kind: "feature" | "module" | "source";
+  kind: "feature" | "module" | "source" | "concept" | "matrix";
   steps: string[];
   reached: number;
   current: string | null;
@@ -107,3 +107,35 @@ export type EventName =
   | "job.tool"
   | "job.done"
   | "job.error";
+
+export type Issue = { id: string; rule: string; severity: "erro" | "aviso"; message: string; files: string[]; fix: string };
+
+export type Progress = { reached: number; steps: string[]; current: string | null };
+export type FeatureLine = { id: string; name: string; path: string; stage: string; missing: number; doubts: number };
+export type Decision = {
+  id: string;
+  title: string;
+  status: string;
+  affects: string[];
+  decider: string;
+  deadline: string | null;
+  context: string;
+  options: string[];
+  decision: string;
+  decidedOn: string;
+  decidedBy: string;
+  history: string[];
+};
+export type Overview = {
+  name: string;
+  concept: Progress | null;
+  matrix: Progress | null;
+  counts: { modules: number; features: number; sources: number; decisionsOpen: number; issues: number; errors: number; doubts: number };
+  stages: { stage: string; count: number }[];
+  modules: { id: string; name: string; path: string; guide: Progress | null; features: FeatureLine[] }[];
+  orphans: FeatureLine[];
+  decisions: Decision[];
+  next: { text: string; path?: string }[];
+};
+export type DevPack = { title: string; markdown: string; warnings: string[]; testPlan: string };
+export type Screen = "overview" | "issues" | "decisions";

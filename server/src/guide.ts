@@ -4,7 +4,7 @@
  * julga o conteúdo. A mesma regra serve ao cartão "Próximo passo" e ao modo simulado.
  */
 
-export type DocKind = "feature" | "module" | "source";
+export type DocKind = "feature" | "module" | "source" | "concept" | "matrix";
 
 export type Missing = {
   id: string;
@@ -36,6 +36,8 @@ export type Guide = {
 export const FEATURE_STEPS = ["Ideia", "Entendida", "Detalhada", "Pronta para dev"];
 export const MODULE_STEPS = ["Ideia", "Mapeado", "Detalhado"];
 export const SOURCE_STEPS = ["Importada", "Revisada", "Aplicada"];
+export const CONCEPT_STEPS = ["Visão", "Escopo", "Requisitos"];
+export const MATRIX_STEPS = ["Perfis", "Ações", "Preenchida"];
 
 const LATER_STATUS = ["em desenvolvimento", "concluida", "cancelada"];
 
@@ -51,6 +53,8 @@ export function kindOfPath(rel: string): DocKind | null {
   if (/^docs\/features\/[^/]+\.md$/i.test(rel)) return "feature";
   if (/^docs\/modulos\/[^/]+\.md$/i.test(rel)) return "module";
   if (/^docs\/fontes\/[^/]+\.md$/i.test(rel)) return "source";
+  if (/^docs\/CONCEITO\.md$/i.test(rel)) return "concept";
+  if (/^docs\/permissoes\.md$/i.test(rel)) return "matrix";
   return null;
 }
 
@@ -60,7 +64,7 @@ export function sectionsOf(content: string): Map<string, string> {
   const out = new Map<string, string>();
   const re = /^##[ \t]+(.+?)[ \t]*$/gm;
   const heads: { title: string; start: number; end: number }[] = [];
-  for (let m = re.exec(text); m; m = re.exec(text)) heads.push({ title: norm(m[1]), start: m.index + m[0].length, end: m.index });
+  for (let m = re.exec(text); m; m = re.exec(text)) heads.push({ title: norm(m[1].replace(/^\d+\.\s*/, "")), start: m.index + m[0].length, end: m.index });
   heads.forEach((h, i) => {
     const stop = heads[i + 1]?.end ?? text.length;
     if (!out.has(h.title)) out.set(h.title, text.slice(h.start, stop));
@@ -200,6 +204,99 @@ const moduleSteps: Step[] = [
   },
 ];
 
+/** Linhas de dados de uma tabela Markdown (sem o cabeçalho e o separador), com o cabeçalho à parte. */
+export function tableOf(body: string | undefined): { header: string[]; rows: string[][] } {
+  const rows = lines(body).filter((l) => l.startsWith("|"));
+  const cells = (l: string) => l.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+  const data = rows.filter((l) => !/^\|?\s*:?-{2,}/.test(l.replace(/\s/g, "")));
+  const [head, ...rest] = data.map(cells);
+  return { header: head ?? [], rows: rest.filter((r) => r.some(Boolean)) };
+}
+
+const PLACEHOLDER = /\[[^\]]+\]/;
+
+function analyzeConcept(content: string, sec: Map<string, string>): Guide {
+  const title = content.match(/^#\s+(.+)$/m)?.[1] ?? "";
+  const scope = sec.get("escopo");
+  const forIdx = lines(scope).findIndex((l) => /^\*\*fora/i.test(l));
+  const scopeLines = lines(scope);
+  const inside = forIdx < 0 ? 0 : bullets(scopeLines.slice(0, forIdx).join("\n")).length;
+  const outside = forIdx < 0 ? 0 : bullets(scopeLines.slice(forIdx).join("\n")).length;
+  const steps: { name: string; check: () => Missing[] }[] = [
+    {
+      name: "Visão",
+      check: () => {
+        const m: Missing[] = [];
+        if (!title || PLACEHOLDER.test(title)) m.push({ id: "nome", label: "Nome do projeto", ask: "Qual é o nome do projeto?" });
+        if (!has(sec.get("resumo"))) m.push({ id: "resumo", label: "Resumo, em 2 ou 3 frases", section: "Resumo", ask: "Em 2 ou 3 frases: o que é a plataforma, para quem e que resultado entrega?" });
+        if (!has(sec.get("problema"))) m.push({ id: "problema", label: "Problema que resolve", section: "Problema", ask: "Quem sofre hoje, qual é a dor e como resolvem agora (planilha, concorrente, processo manual)?" });
+        if (tableOf(sec.get("perfis de usuario")).rows.length === 0)
+          m.push({ id: "perfis", label: "Perfis de usuário (ao menos um)", section: "Perfis de usuário", ask: "Quem usa a plataforma? Cite um perfil, quem é e o que precisa fazer nela." });
+        return m;
+      },
+    },
+    {
+      name: "Escopo",
+      check: () => {
+        const m: Missing[] = [];
+        if (!has(sec.get("solucao"))) m.push({ id: "solucao", label: "Solução, em um parágrafo", section: "Solução", ask: "Como a plataforma resolve o problema, em um parágrafo?" });
+        if (inside === 0 || outside === 0)
+          m.push({ id: "escopo", label: "Escopo: o que está dentro e o que está fora", section: "Escopo", ask: "O que precisa estar na primeira versão (MVP) e o que fica explicitamente de fora?" });
+        if (tableOf(sec.get("mapa de modulos")).rows.length === 0)
+          m.push({ id: "modulos", label: "Mapa de módulos (ao menos um)", section: "Mapa de módulos", ask: "Em quais áreas (módulos) a plataforma se divide? Cite o primeiro e o que ele resolve." });
+        return m;
+      },
+    },
+    {
+      name: "Requisitos",
+      check: () => {
+        const m: Missing[] = [];
+        if (bullets(sec.get("requisitos gerais")).length === 0)
+          m.push({ id: "requisitos", label: "Requisitos gerais (segurança, LGPD, desempenho…)", section: "Requisitos gerais", ask: "Que exigências valem para a plataforma toda: acesso e segurança, LGPD, desempenho, disponibilidade, plataformas?" });
+        if (!has(sec.get("diretrizes tecnicas")))
+          m.push({ id: "tecnicas", label: "Diretrizes técnicas", section: "Diretrizes técnicas", ask: "Há escolhas técnicas já definidas (linguagem, banco, hospedagem, integrações)? Se não, digo que ainda não há." });
+        return m;
+      },
+    },
+  ];
+  let reached = 0;
+  let missing: Missing[] = [];
+  for (const st of steps) {
+    missing = st.check();
+    if (missing.length) break;
+    reached++;
+  }
+  return { kind: "concept", steps: CONCEPT_STEPS, reached, current: reached < steps.length ? steps[reached].name : null, missing, doubts: 0 };
+}
+
+/** Colunas fixas da tabela de ações; as demais são perfis. */
+export const MATRIX_FIXED = ["acao", "modulo", "condicao"];
+
+export function matrixOf(content: string): { profiles: string[]; header: string[]; rows: string[][] } {
+  const t = tableOf(sectionsOf(content).get("acoes"));
+  const profiles = t.header.filter((h) => !MATRIX_FIXED.includes(norm(h)));
+  return { profiles, header: t.header, rows: t.rows };
+}
+
+function analyzeMatrix(content: string): Guide {
+  const { profiles, header, rows } = matrixOf(content);
+  const idx = profiles.map((p) => header.indexOf(p));
+  const emptyCells = rows.reduce((n, r) => n + idx.filter((i) => !(r[i] ?? "").trim()).length, 0);
+  const checks: (() => Missing[])[] = [
+    () => (profiles.length ? [] : [{ id: "perfis", label: "Perfis na matriz (traga os do Conceito)", ask: "Quais perfis entram na matriz? Posso trazer os do Conceito." }]),
+    () => (rows.length ? [] : [{ id: "acoes", label: "Ações (ao menos uma)", section: "Ações", ask: "Qual é a primeira ação que alguém faz na plataforma (ex.: criar ordem de serviço) e em qual módulo?" }]),
+    () => (emptyCells === 0 ? [] : [{ id: "celulas", label: `Preencher ${emptyCells} ${emptyCells === 1 ? "célula" : "células"} (S, N ou C)`, section: "Ações", ask: "Vamos preencher a matriz: quem pode fazer cada ação?" }]),
+  ];
+  let reached = 0;
+  let missing: Missing[] = [];
+  for (const c of checks) {
+    missing = c();
+    if (missing.length) break;
+    reached++;
+  }
+  return { kind: "matrix", steps: MATRIX_STEPS, reached, current: reached < MATRIX_STEPS.length ? MATRIX_STEPS[reached] : null, missing, doubts: 0 };
+}
+
 /** Propostas de uma ficha de fonte: "- [ ] texto" pendente, "- [x] texto" aceita, "- ~~texto~~" descartada. */
 export function proposalsOf(content: string): { pending: number; accepted: number; applied: number; discarded: number } {
   const out = { pending: 0, accepted: 0, applied: 0, discarded: 0 };
@@ -251,6 +348,8 @@ export function analyzeDoc(rel: string, content: string): Guide | null {
   if (!kind) return null;
   const sec = sectionsOf(content);
   if (kind === "source") return analyzeSource(content, sec);
+  if (kind === "concept") return analyzeConcept(content, sec);
+  if (kind === "matrix") return analyzeMatrix(content);
   const defs = kind === "feature" ? featureSteps : moduleSteps;
   const steps = kind === "feature" ? FEATURE_STEPS : MODULE_STEPS;
   const doubts = doubtsOf(sec);
@@ -271,7 +370,7 @@ export function analyzeDoc(rel: string, content: string): Guide | null {
   // "Pronta para dev" não se deduz do texto: é a confirmação depois da revisão final.
   if (kind === "feature" && reached === defs.length) {
     if (declared && norm(declared) === "pronta para dev") reached = steps.length;
-    else missing = [{ id: "revisao", label: "Revisão final e confirmação", ask: "Revisar a feature contra o Conceito, as permissões e o Glossário e confirmar que está pronta." }];
+    else missing = [{ id: "revisao", label: "Revisão final e confirmação", ask: "Revisar a feature contra o Conceito, as permissões e as permissões e confirmar que está pronta." }];
   }
 
   return { kind, steps, reached, current: reached < steps.length ? steps[reached] : null, missing, doubts };

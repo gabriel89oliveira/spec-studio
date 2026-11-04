@@ -1,5 +1,5 @@
 import type { Guide } from "../types";
-import { btnClaude } from "../ui";
+import { btn, btnClaude } from "../ui";
 
 type Props = {
   path: string;
@@ -7,6 +7,10 @@ type Props = {
   busy: boolean;
   claudeEnabled: boolean;
   onContinue: (prompt: string) => void;
+  /** Features: muda a etapa (pronta, em desenvolvimento, concluída…). */
+  onStage?: (stage: string) => void;
+  /** Features: abre o pacote para o desenvolvimento. */
+  onPack?: () => void;
 };
 
 /** O pedido que o botão do cartão envia ao Claude, conforme o que falta. */
@@ -59,11 +63,53 @@ function Steps({ guide }: { guide: Guide }) {
   );
 }
 
-export function GuideCard({ path, guide, busy, claudeEnabled, onContinue }: Props) {
+export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStage, onPack }: Props) {
   const finished = guide.current === null;
   const action = guide.missing[0]?.action;
   const review = action === "review";
   const pedeRevisao = guide.missing.length === 1 && guide.missing[0].id === "revisao" && !action;
+  const status = (guide.status ?? "").toLowerCase();
+  const isFeature = guide.kind === "feature" && !!onStage;
+  const ready = isFeature && finished && !guide.status;
+  const handoff = isFeature && (
+    <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-3" data-testid="handoff">
+      {pedeRevisao && (
+        <button className={btn} disabled={busy} onClick={() => onStage!("Pronta para dev")}>
+          Marcar como pronta
+        </button>
+      )}
+      {ready && (
+        <>
+          <button className={btn} disabled={busy} onClick={() => onStage!("Em desenvolvimento")}>
+            Iniciar desenvolvimento
+          </button>
+          <button className={btn} disabled={busy} onClick={() => onStage!("Detalhada")}>
+            Voltar para revisão
+          </button>
+        </>
+      )}
+      {status.startsWith("em desenv") && (
+        <>
+          <button className={btn} disabled={busy} onClick={() => onStage!("Concluída")}>
+            Marcar como concluída
+          </button>
+          <button className={btn} disabled={busy} onClick={() => onStage!("Pronta para dev")}>
+            Voltar para pronta
+          </button>
+        </>
+      )}
+      {status.startsWith("conclu") && (
+        <button className={btn} disabled={busy} onClick={() => onStage!("Em desenvolvimento")}>
+          Reabrir desenvolvimento
+        </button>
+      )}
+      {guide.reached >= 3 && !status.startsWith("cancel") && onPack && (
+        <button className={`${btnClaude} ml-auto`} onClick={onPack} title="Contexto, regras, permissões e testes reunidos para a IA que vai programar">
+          Pacote para desenvolvimento
+        </button>
+      )}
+    </div>
+  );
   return (
     <div className="mx-auto max-w-[780px] px-2 pb-3 xl:px-4" data-testid="guide-card">
       <section className="space-y-3 rounded-2xl border border-line/70 bg-panel px-5 py-4 shadow-[var(--shadow-panel)]">
@@ -105,6 +151,7 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue }: Prop
             )}
           </div>
         )}
+        {handoff}
       </section>
     </div>
   );

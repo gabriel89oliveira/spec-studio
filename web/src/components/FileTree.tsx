@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { TreeNode } from "../types";
+import type { Screen, TreeNode } from "../types";
 import { btn, btnClaude, btnGhost, displayName, input } from "../ui";
 import { IconChevron, IconFile, IconPlus } from "./Icons";
 import { ImportSource, type SourcePayload } from "./ImportSource";
@@ -12,6 +12,10 @@ type Props = {
   onOpen: (path: string) => void;
   onCreate: (prompt: string) => void;
   onImport: (p: SourcePayload) => Promise<boolean>;
+  screen: Screen | null;
+  onScreen: (s: Screen) => void;
+  /** Quantos problemas e decisões abertas mostrar ao lado das telas. */
+  badges: { issues: number; decisions: number };
 };
 
 function modulesOf(tree: TreeNode[]): { id: string; label: string }[] {
@@ -226,6 +230,21 @@ export function FileTree(props: Props) {
   return (
     <aside className="flex w-60 shrink-0 flex-col overflow-clip rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
+        <ul className="mb-2 space-y-0.5 border-b border-line/60 pb-2" aria-label="Visões do projeto">
+          {([["overview", "Visão geral", 0], ["issues", "Problemas", props.badges.issues], ["decisions", "Decisões", props.badges.decisions]] as const).map(([id, label, n]) => (
+            <li key={id}>
+              <button
+                data-screen={id}
+                aria-current={props.screen === id ? "page" : undefined}
+                className={`flex h-[30px] w-full items-center justify-between rounded-lg px-2.5 text-[13px] font-medium transition-colors ${props.screen === id ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"}`}
+                onClick={() => props.onScreen(id)}
+              >
+                {label}
+                {n > 0 && <span className="rounded-full bg-mark-soft px-1.5 text-2xs font-semibold tabular-nums text-mark-ink">{n}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
         {nested.map((n) => (
           <Node key={n.path} node={n} depth={0} props={props} />
         ))}
