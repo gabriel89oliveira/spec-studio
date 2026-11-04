@@ -31,7 +31,7 @@ const STATUS: Record<Comment["status"], { text: string; bar: string }> = {
 
 function Quote({ text }: { text: string }) {
   return (
-    <blockquote className="line-clamp-3 border-l-2 border-mark pl-2.5 font-serif text-[14px] italic leading-snug text-ink-2">{text}</blockquote>
+    <blockquote className="line-clamp-3 border-l-2 border-mark pl-2.5 text-[14px] italic leading-snug text-ink-2">{text}</blockquote>
   );
 }
 
@@ -181,7 +181,7 @@ function NewComment({ anchor, onCreate, onCancel }: { anchor: Anchor; onCreate: 
   };
   return (
     <div className="space-y-2.5 rounded-lg border border-accent/60 bg-sheet p-3 shadow-lift ring-2 ring-accent/10" data-testid="new-comment">
-      <div className="font-cond text-[15px] font-semibold text-ink">Novo comentário</div>
+      <div className="text-[15px] font-semibold text-ink">Novo comentário</div>
       <Quote text={anchor.quote} />
       <textarea
         className={input}

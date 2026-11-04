@@ -28,11 +28,11 @@ export function Header({ project, busy, lastError, connected }: Props) {
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-line bg-panel px-4">
       <div className="flex min-w-0 items-baseline gap-3">
-        <span className="font-cond text-[13px] font-medium text-ink-3">Spec Studio</span>
+        <span className="text-[13px] font-medium text-ink-3">Spec Studio</span>
         <span className="text-line-strong" aria-hidden="true">
           /
         </span>
-        <span className="truncate font-cond text-[18px] font-semibold leading-none text-ink" title={project?.projectDir}>
+        <span className="truncate text-[16px] font-semibold leading-none text-ink" title={project?.projectDir}>
           {project?.name ?? "…"}
         </span>
         {project?.branch && <span className="text-xs text-ink-3">{project.branch}</span>}

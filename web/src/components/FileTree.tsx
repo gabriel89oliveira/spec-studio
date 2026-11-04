@@ -112,7 +112,7 @@ function NewItemForm({
 
   return (
     <div className="mx-2 mb-2 space-y-2.5 rounded-lg border border-line bg-sheet p-3 shadow-lift">
-      <div className="font-cond text-[15px] font-semibold text-ink">{kind === "feature" ? "Nova feature" : "Novo módulo"}</div>
+      <div className="text-[15px] font-semibold text-ink">{kind === "feature" ? "Nova feature" : "Novo módulo"}</div>
       <label className="block space-y-1">
         <span className="text-xs text-ink-2">Nome</span>
         <input

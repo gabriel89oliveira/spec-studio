@@ -23,10 +23,9 @@ export default {
         del: { DEFAULT: token("del"), soft: token("del-soft") },
       },
       fontFamily: {
-        sans: ['"Barlow"', "ui-sans-serif", "system-ui", '"Segoe UI"', "sans-serif"],
-        cond: ['"Barlow Semi Condensed"', '"Barlow"', "ui-sans-serif", "sans-serif"],
-        serif: ['"Source Serif 4 Variable"', '"Source Serif 4"', "Georgia", "serif"],
-        mono: ["ui-monospace", '"Cascadia Code"', "Consolas", '"SF Mono"', "Menlo", "monospace"],
+        // As famílias ficam em variáveis CSS (src/index.css), para trocar de fonte sem mexer aqui.
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
       },
       fontSize: {
         "2xs": ["11px", "15px"],

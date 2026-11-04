@@ -1,12 +1,4 @@
-@import "@fontsource/barlow/400.css";
-@import "@fontsource/barlow/400-italic.css";
-@import "@fontsource/barlow/500.css";
-@import "@fontsource/barlow/600.css";
-@import "@fontsource/barlow-semi-condensed/500.css";
-@import "@fontsource/barlow-semi-condensed/600.css";
-@import "@fontsource/barlow-semi-condensed/700.css";
-@import "@fontsource-variable/source-serif-4/opsz.css";
-@import "@fontsource-variable/source-serif-4/opsz-italic.css";
+@import "./fonts/fonts.css";
 
 @tailwind base;
 @tailwind components;
@@ -17,6 +9,8 @@
  * Claro = folha branca na mesa de desenho. Escuro = planta (blueprint).
  */
 :root {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
   --desk: 230 235 240;
   --panel: 245 247 249;
   --sheet: 255 255 255;
@@ -96,12 +90,12 @@ body,
 
 body {
   margin: 0;
-  font-family: theme("fontFamily.sans");
+  font-family: var(--font-sans);
   font-size: 14px;
   color: rgb(var(--ink));
   background: rgb(var(--panel));
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "kern", "liga";
+  font-kerning: normal;
 }
 
 /* Mesa de desenho: papel milimetrado (linhas finas a cada 16 px, grossas a cada 80 px). */
@@ -138,15 +132,15 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Documento: Source Serif no corpo, Barlow Semi Condensed nos títulos */
+/* Documento: IBM Plex Sans, ajustado para leitura longa */
 /* ------------------------------------------------------------------ */
 .md {
-  font-family: theme("fontFamily.serif");
-  font-size: 17px;
-  line-height: 1.68;
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.7;
   color: rgb(var(--ink));
-  font-optical-sizing: auto;
   overflow-wrap: break-word;
+  font-kerning: normal;
 }
 .md > :first-child {
   margin-top: 0;
@@ -155,26 +149,25 @@ body {
 .md h2,
 .md h3,
 .md h4 {
-  font-family: theme("fontFamily.cond");
   color: rgb(var(--ink));
-  line-height: 1.2;
-  letter-spacing: -0.005em;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   scroll-margin-top: 24px;
 }
 .md h1 {
-  font-size: 34px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 600;
   margin: 0 0 28px;
   padding-bottom: 18px;
   border-bottom: 2px solid rgb(var(--ink));
 }
 .md h2 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   margin: 44px 0 14px;
 }
 .md h3 {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 600;
   margin: 32px 0 10px;
 }
@@ -187,7 +180,7 @@ body {
   margin: 0 0 14px;
 }
 .md strong {
-  font-weight: 640;
+  font-weight: 600;
 }
 .md a {
   color: rgb(var(--accent));
@@ -215,8 +208,8 @@ body {
 }
 .md ol > li::marker {
   color: rgb(var(--ink-2));
-  font-family: theme("fontFamily.cond");
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .md li > ul,
 .md li > ol {
@@ -247,7 +240,7 @@ body {
   margin: 32px 0;
 }
 .md code {
-  font-family: theme("fontFamily.mono");
+  font-family: var(--font-mono);
   font-size: 0.82em;
   padding: 0.1em 0.35em;
   border-radius: 4px;
@@ -255,7 +248,7 @@ body {
   color: rgb(var(--ink));
 }
 .md pre {
-  font-family: theme("fontFamily.mono");
+  font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.6;
   margin: 0 0 18px;
@@ -270,19 +263,17 @@ body {
   background: none;
   font-size: inherit;
 }
-/* Tabelas como quadros de especificação: cabeçalho em Barlow, linhas finas */
+/* Tabelas como quadros de especificação: cabeçalho pequeno em negrito, linhas finas */
 .md table {
   width: 100%;
   border-collapse: collapse;
   margin: 4px 0 22px;
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .md thead th {
-  font-family: theme("fontFamily.cond");
   font-weight: 600;
-  font-size: 13.5px;
-  letter-spacing: 0.01em;
+  font-size: 13px;
   text-align: left;
   color: rgb(var(--ink-2));
   border-bottom: 1.5px solid rgb(var(--ink));
@@ -299,7 +290,7 @@ body {
 
 /* Variante compacta: respostas no chat e nos comentários */
 .md-sm {
-  font-family: theme("fontFamily.sans");
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.55;
   color: rgb(var(--ink));
@@ -323,7 +314,7 @@ body {
   list-style: decimal;
 }
 .md-sm code {
-  font-family: theme("fontFamily.mono");
+  font-family: var(--font-mono);
   font-size: 0.86em;
   padding: 0.05em 0.3em;
   border-radius: 4px;
@@ -351,9 +342,9 @@ body {
   outline: none !important;
 }
 .cm-scroller {
-  font-family: theme("fontFamily.mono") !important;
-  font-size: 14px;
-  line-height: 1.7 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 13.5px;
+  line-height: 1.75 !important;
 }
 .cm-content {
   padding: 28px 0 !important;

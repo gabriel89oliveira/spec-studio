@@ -386,7 +386,7 @@ export default function App() {
               <Sheet wide>
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="font-cond text-[21px] font-semibold text-ink">O que mudou neste arquivo</div>
+                    <div className="text-[21px] font-semibold text-ink">O que mudou neste arquivo</div>
                     <div className="text-xs text-ink-3">Comparação entre o que estava na tela e a versão nova.</div>
                   </div>
                   <button
