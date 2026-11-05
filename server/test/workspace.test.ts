@@ -10,10 +10,10 @@ const KIT = path.resolve(__dirname, "../../kit");
 const open: Workspace[] = [];
 const tmp = () => fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "ws-test-")));
 
-function make() {
+function make(picker?: (o: { title: string; initial?: string }) => Promise<string | null>) {
   const state = path.join(tmp(), "state.json");
   const { projectDir: _p, ...base } = makeConfig("x", { mock: true });
-  const ws = new Workspace(base, { stateFile: state, kitDir: KIT, watch: false });
+  const ws = new Workspace(base, { stateFile: state, kitDir: KIT, watch: false, picker });
   open.push(ws);
   return { ws, state, api: request(ws.app()) };
 }
@@ -106,5 +106,31 @@ describe("projetos pela tela", () => {
     expect(r.isProject).toBe(false);
     expect(r.parent).toBe(path.dirname(parent));
     expect((await api.get(`/api/workspace/browse?path=${encodeURIComponent(makeProject())}`)).body.isProject).toBe(true);
+  });
+});
+
+describe("janela nativa de escolha de pasta", () => {
+  it("devolve o caminho escolhido e se é um projeto; cancelar devolve null", async () => {
+    const proj = makeProject();
+    const calls: { title: string; initial?: string }[] = [];
+    let next: string | null = proj;
+    const { api } = make(async (o) => (calls.push(o), next));
+    const r = await api.post("/api/workspace/pick").send({ title: "Abrir" });
+    expect(r.body).toEqual({ path: proj, isProject: true });
+    expect(calls[0].title).toBe("Abrir");
+    next = null;
+    expect((await api.post("/api/workspace/pick").send({})).body).toEqual({ path: null, isProject: false });
+    next = tmp();
+    expect((await api.post("/api/workspace/pick").send({})).body.isProject).toBe(false);
+  });
+
+  it("responde 501 quando a janela não pode ser aberta, para a tela usar o plano B", async () => {
+    const { HttpError } = await import("../src/util.js");
+    const { api } = make(async () => {
+      throw new HttpError(501, "sem janela");
+    });
+    const r = await api.post("/api/workspace/pick").send({});
+    expect(r.status).toBe(501);
+    expect(r.body.error).toBe("sem janela");
   });
 });

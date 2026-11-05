@@ -49,6 +49,7 @@ export const api = {
 
   workspace: () => req<WorkspaceInfo>("GET", "/api/workspace"),
   browse: (path?: string) => req<Browse>("GET", `/api/workspace/browse${path ? `?path=${q(path)}` : ""}`),
+  pickFolder: (title: string, initial?: string) => req<{ path: string | null; isProject: boolean }>("POST", "/api/workspace/pick", { title, initial }),
   openProject: (path: string) => req<WorkspaceInfo>("POST", "/api/workspace/open", { path }),
   newProject: (parent: string, name: string) => req<WorkspaceInfo>("POST", "/api/workspace/new", { parent, name }),
 

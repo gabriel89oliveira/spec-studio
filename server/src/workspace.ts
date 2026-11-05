@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createServer, type ServerOptions } from "./app.js";
 import { checkProjectDir, ConfigError, type Config } from "./config.js";
 import { EventBus } from "./events.js";
+import { nativeFolderPicker, type FolderPicker } from "./folderDialog.js";
 import { HttpError } from "./util.js";
 
 type Server = Awaited<ReturnType<typeof createServer>>;
@@ -29,7 +30,7 @@ export class Workspace {
 
   constructor(
     private base: BaseConfig,
-    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean } = {},
+    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean; picker?: FolderPicker } = {},
   ) {
     this.loadState();
   }
@@ -154,6 +155,22 @@ export class Workspace {
 
     app.get("/api/workspace", wrap((_req, res) => res.json(info())));
     app.get("/api/workspace/browse", wrap((req, res) => res.json(this.browse(typeof req.query.path === "string" ? req.query.path : undefined))));
+    let picking = false;
+    app.post(
+      "/api/workspace/pick",
+      json,
+      wrap(async (req, res) => {
+        const b = z.object({ title: z.string().max(120).optional(), initial: z.string().optional() }).parse(req.body ?? {});
+        if (picking) throw new HttpError(409, "A janela de escolha de pasta já está aberta");
+        picking = true;
+        try {
+          const chosen = await (this.opts.picker ?? nativeFolderPicker)({ title: b.title ?? "Escolha a pasta", initial: b.initial?.trim() || (this.dir ? path.dirname(this.dir) : os.homedir()) });
+          res.json({ path: chosen ? path.resolve(chosen) : null, isProject: chosen ? fs.existsSync(path.join(chosen, "CLAUDE.md")) : false });
+        } finally {
+          picking = false;
+        }
+      }),
+    );
     app.post(
       "/api/workspace/open",
       json,
