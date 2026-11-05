@@ -22,21 +22,33 @@ function logFile(msg: string): void {
   }
 }
 
-/** O Agent SDK traz o executável do Claude num pacote por plataforma; dentro do .asar ele não roda, então usamos a cópia desempacotada. */
+/** O Agent SDK traz o executável do Claude num pacote por plataforma (às vezes aninhado dentro do pacote do SDK); dentro do .asar ele não roda, então usamos a cópia desempacotada. */
 function findClaudeBinary(): string | undefined {
-  const dir = path.join(unpacked, "node_modules", "@anthropic-ai");
-  try {
-    for (const name of fs.readdirSync(dir)) {
-      if (!name.startsWith("claude-agent-sdk-")) continue;
-      for (const exe of ["claude.exe", "claude"]) {
-        const p = path.join(dir, name, exe);
+  const exe = process.platform === "win32" ? "claude.exe" : "claude";
+  const want = `claude-agent-sdk-${process.platform}-${process.arch}`;
+  const walk = (dir: string, depth: number): string | undefined => {
+    let names: string[];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      return undefined;
+    }
+    for (const name of names) {
+      const full = path.join(dir, name);
+      if (name === want || name.startsWith(`${want}-`)) {
+        const p = path.join(full, exe);
         if (fs.existsSync(p)) return p;
       }
+      if (depth > 0 && (name === "node_modules" || name === "@anthropic-ai" || name.startsWith("claude-agent-sdk"))) {
+        const hit = walk(full, depth - 1);
+        if (hit) return hit;
+      }
     }
-  } catch {
-    /* sem pacote desempacotado (modo dev) */
-  }
-  return undefined;
+    return undefined;
+  };
+  const found = walk(path.join(unpacked, "node_modules"), 6);
+  logFile(found ? `Executável do Claude: ${found}` : `Executável do Claude não encontrado em ${unpacked}`);
+  return found;
 }
 
 type Proxy = { enabled: boolean; mode: "manual" | "pac"; host: string; port: number | null; pacUrl: string; user: string; password: string };
