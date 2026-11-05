@@ -43,7 +43,7 @@ export const realQuery: QueryFn = async function* (params) {
 };
 
 /** Credenciais e destino das chamadas: chave da API ou token de gateway, com a URL do gateway se houver. */
-export type Auth = { apiKey?: string; authToken?: string; baseUrl?: string; customHeaders?: string };
+export type Auth = { apiKey?: string; authToken?: string; baseUrl?: string; customHeaders?: string; /** Proxy da rede (URL, com usuário e senha se houver). */ proxyUrl?: string };
 export type ClaudeConfig = { projectDir: string; model: string; /** Caminho do executável do Claude (app instalado). */ claudeExecutable?: string } & Auth;
 
 // ---------------------------------------------------------------------------
@@ -158,6 +158,17 @@ export function agentEnv(auth: string | Auth | undefined, base: NodeJS.ProcessEn
     if (upper.startsWith("CLAUDE") && !KEEP_ENV.has(upper)) continue;
     if (AUTH_VARS.has(upper)) continue;
     env[k] = v;
+  }
+  if (a.proxyUrl) {
+    for (const k of Object.keys(env)) if (/^(https?|no)_proxy$/i.test(k)) delete env[k];
+    env.HTTPS_PROXY = a.proxyUrl;
+    env.HTTP_PROXY = a.proxyUrl;
+    env.NO_PROXY = "localhost,127.0.0.1";
+    if (process.platform !== "win32") {
+      env.https_proxy = a.proxyUrl;
+      env.http_proxy = a.proxyUrl;
+      env.no_proxy = "localhost,127.0.0.1";
+    }
   }
   env.ANTHROPIC_API_KEY = a.apiKey;
   if (a.authToken) env.ANTHROPIC_AUTH_TOKEN = a.authToken;

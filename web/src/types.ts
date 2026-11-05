@@ -153,6 +153,10 @@ export type Settings = {
   customHeaders: string;
   model: string;
   userName: string;
+  proxy: ProxyView;
   secureStorage: boolean;
 };
-export type SettingsPatch = Partial<Pick<Settings, "baseUrl" | "customHeaders" | "model" | "userName">> & { apiKey?: string | null; authToken?: string | null };
+export type ProxyView = { enabled: boolean; mode: "manual" | "pac"; host: string; port: number | null; pacUrl: string; user: string; passwordSet: boolean };
+export type ProxyPatch = Partial<Omit<ProxyView, "passwordSet">> & { password?: string | null };
+export type ProxyTest = { ok: boolean; message: string; via?: string };
+export type SettingsPatch = Partial<Pick<Settings, "baseUrl" | "customHeaders" | "model" | "userName">> & { apiKey?: string | null; authToken?: string | null; proxy?: ProxyPatch };

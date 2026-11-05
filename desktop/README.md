@@ -49,6 +49,13 @@ Sem certificado, o Windows SmartScreen avisa "editor desconhecido" na primeira i
 Com um certificado de assinatura de código, guarde o `.pfx` em base64 como segredo `CSC_LINK` e a senha como `CSC_KEY_PASSWORD`:
 o fluxo já usa esses nomes. Atualizações automáticas funcionam sem assinatura, mas a experiência é pior.
 
+## Proxy
+
+Em redes com proxy, abra ⚙ Configurações → **Conexão**: *Manual* (endereço e porta) ou *Script automático* (o mesmo endereço
+do script que o Windows usa em Rede e Internet › Proxy). Usuário e senha são opcionais; a senha fica cifrada pelo Windows.
+**Testar conexão** chega ao destino do Claude com o que estiver preenchido. O proxy vale para o Claude e para as atualizações do app.
+Se a rede inspeciona o tráfego com certificado próprio, o teste avisa; pode ser preciso instalar o certificado da empresa no Windows.
+
 ## Onde ficam os dados
 
 `%APPDATA%\Spec Studio\data` guarda `settings.json` (chaves cifradas com o Windows) e `state.json` (projetos recentes);
@@ -61,5 +68,5 @@ o fluxo já usa esses nomes. Atualizações automáticas funcionam sem assinatur
 
 ## Ainda não verificado
 
-O app foi testado em Linux (xvfb) com Claude simulado. Em Windows ainda é preciso conferir: instalação, assinatura,
+O app foi testado em Linux (xvfb) com Claude simulado. Em Windows ainda é preciso conferir (inclusive o proxy com script automático e com senha): instalação, assinatura,
 o executável do Claude desempacotado, o seletor de pasta e a atualização automática ponta a ponta.

@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Server } from "node:http";
 import { noCodec, SettingsStore, type SecretCodec } from "./settings.js";
 import type { FolderPicker } from "./folderDialog.js";
+import type { PacResolver } from "./proxy.js";
 import { Workspace, type AppInfo, type BaseConfig } from "./workspace.js";
 
 export type StartOptions = {
@@ -18,10 +19,12 @@ export type StartOptions = {
   codec?: SecretCodec;
   picker?: FolderPicker;
   app?: AppInfo;
+  /** Lê scripts de proxy (PAC). Só o aplicativo sabe; no navegador o modo "script automático" fica indisponível. */
+  pacResolver?: PacResolver;
   log?: (msg: string) => void;
 };
 
-export type Started = { port: number; url: string; workspace: Workspace; startError: string | null; close: () => Promise<void> };
+export type Started = { settings: SettingsStore; port: number; url: string; workspace: Workspace; startError: string | null; close: () => Promise<void> };
 
 /** Sobe o servidor do Spec Studio: o mesmo código no `npm run dev` e dentro do aplicativo instalado. */
 export async function startServer(o: StartOptions): Promise<Started> {
@@ -34,6 +37,7 @@ export async function startServer(o: StartOptions): Promise<Started> {
     webDir: o.webDir,
     picker: o.picker,
     app: o.app,
+    pacResolver: o.pacResolver,
   });
 
   const startError = await ws.start(o.envProjectDir);
@@ -46,6 +50,7 @@ export async function startServer(o: StartOptions): Promise<Started> {
   });
   const port = (http.address() as { port: number }).port;
   return {
+    settings,
     port,
     url: `http://127.0.0.1:${port}`,
     workspace: ws,

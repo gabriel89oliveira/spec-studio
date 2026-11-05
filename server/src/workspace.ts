@@ -9,6 +9,7 @@ import { checkProjectDir, ConfigError, type Config } from "./config.js";
 import { EventBus } from "./events.js";
 import { nativeFolderPicker, type FolderPicker } from "./folderDialog.js";
 import { parseSettingsPatch, type SettingsStore } from "./settings.js";
+import { resolveProxy, testProxy, type PacResolver } from "./proxy.js";
 import { HttpError } from "./util.js";
 
 type Server = Awaited<ReturnType<typeof createServer>>;
@@ -40,13 +41,25 @@ export class Workspace {
 
   constructor(
     private envBase: BaseConfig,
-    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean; picker?: FolderPicker; settings?: SettingsStore; webDir?: string; app?: AppInfo } = {},
+    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean; picker?: FolderPicker; settings?: SettingsStore; webDir?: string; app?: AppInfo; pacResolver?: PacResolver } = {},
   ) {
     this.base = opts.settings ? opts.settings.apply(envBase) : envBase;
     this.loadState();
   }
 
   private base: BaseConfig;
+
+  private get target(): string {
+    return this.base.baseUrl || "https://api.anthropic.com";
+  }
+
+  /** URL do proxy para a próxima chamada ao Claude (undefined = sair direto). */
+  private async proxyUrl(): Promise<string | undefined> {
+    const p = this.base.proxy;
+    if (!p?.enabled) return undefined;
+    const r = await resolveProxy(p, this.target, this.opts.pacResolver);
+    return r.kind === "proxy" ? r.url : undefined;
+  }
 
   /** Relê o .env + configurações da tela e reabre o projeto atual com elas. */
   async reconfigure(): Promise<void> {
@@ -103,7 +116,7 @@ export class Workspace {
   async open(input: string, remember = true): Promise<string> {
     const dir = checkProjectDir(input);
     if (this.server?.jobs.isRunning()) throw new HttpError(409, "Aguarde: o Claude está trabalhando neste projeto");
-    const next = await createServer({ ...this.base, projectDir: dir }, { bus: this.bus, watch: this.opts.watch, queryFn: this.opts.queryFn });
+    const next = await createServer({ ...this.base, projectDir: dir }, { bus: this.bus, watch: this.opts.watch, queryFn: this.opts.queryFn, proxyUrl: () => this.proxyUrl() });
     await this.server?.close();
     this.server = next;
     this.dir = dir;
@@ -191,6 +204,23 @@ export class Workspace {
         }
         await this.reconfigure();
         res.json(this.opts.settings.view(this.envBase));
+      }),
+    );
+    app.post(
+      "/api/settings/test-proxy",
+      json,
+      wrap(async (req, res) => {
+        const b = z
+          .object({
+            mode: z.enum(["manual", "pac"]),
+            host: z.string().max(255).default(""),
+            port: z.number().int().nullable().default(null),
+            pacUrl: z.string().max(2000).default(""),
+            user: z.string().max(255).default(""),
+            password: z.string().max(500).default(""),
+          })
+          .parse(req.body ?? {});
+        res.json(await testProxy({ enabled: true, ...b }, this.target, this.opts.pacResolver));
       }),
     );
     app.get("/api/workspace", wrap((_req, res) => res.json(info())));

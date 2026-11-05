@@ -99,4 +99,33 @@ describe("startServer e configurações", () => {
     await api.post("/api/app/install-update");
     expect(installed).toBe(1);
   });
+
+  it("guarda o proxy com a senha cifrada, sem devolvê-la, e valida os campos", async () => {
+    const { api, dataDir } = await boot({ codec: fakeCodec });
+    const bad = await api.put("/api/settings").send({ proxy: { enabled: true, mode: "manual", host: "", port: 8080 } });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error).toMatch(/endereço do proxy/);
+    const ok = await api.put("/api/settings").send({ proxy: { enabled: true, mode: "manual", host: "proxy.local", port: 8080, user: "ana", password: "senha-secreta" } });
+    expect(ok.status).toBe(200);
+    expect(ok.body.proxy).toEqual({ enabled: true, mode: "manual", host: "proxy.local", port: 8080, pacUrl: "", user: "ana", passwordSet: true });
+    expect(JSON.stringify(ok.body)).not.toContain("senha-secreta");
+    expect(fs.readFileSync(path.join(dataDir, "settings.json"), "utf8")).not.toContain("senha-secreta");
+    // em branco mantém a senha; null remove
+    expect((await api.put("/api/settings").send({ proxy: { password: "" } })).body.proxy.passwordSet).toBe(false);
+  });
+
+  it("sem armazenamento seguro, recusa só a senha do proxy", async () => {
+    const { api } = await boot();
+    expect((await api.put("/api/settings").send({ proxy: { enabled: true, mode: "manual", host: "p", port: 3128, password: "x" } })).status).toBe(400);
+    const ok = await api.put("/api/settings").send({ proxy: { enabled: true, mode: "manual", host: "p", port: 3128 } });
+    expect(ok.body.proxy).toMatchObject({ enabled: true, host: "p", port: 3128, passwordSet: false });
+  });
+
+  it("testa a conexão com o que veio no pedido", async () => {
+    const { api } = await boot();
+    const r = await api.post("/api/settings/test-proxy").send({ mode: "pac", pacUrl: "http://rede/ca.pac" });
+    expect(r.status).toBe(200);
+    expect(r.body.ok).toBe(false);
+    expect(r.body.message).toMatch(/aplicativo instalado/);
+  });
 });

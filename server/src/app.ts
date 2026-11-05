@@ -43,7 +43,7 @@ const anchorSchema = z.object({
   suffix: z.string().max(200).default(""),
 });
 
-export type ServerOptions = { queryFn?: QueryFn; watch?: boolean; bus?: EventBus };
+export type ServerOptions = { queryFn?: QueryFn; watch?: boolean; bus?: EventBus; proxyUrl?: () => Promise<string | undefined> };
 
 export async function createServer(config: Config, opts: ServerOptions = {}) {
   const root = config.projectDir;
@@ -52,7 +52,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
   const tracker = new SourceTracker();
   const comments = new CommentStore(root);
   const sessions = new SessionStore(root);
-  const jobs = new JobRunner({ config, git, comments, sessions, bus, tracker, queryFn: opts.queryFn ?? (config.mock ? mockQuery : realQuery) });
+  const jobs = new JobRunner({ config, git, comments, sessions, bus, tracker, queryFn: opts.queryFn ?? (config.mock ? mockQuery : realQuery), proxyUrl: opts.proxyUrl });
 
   const commitComments = async (file: string, what: string) => {
     if (config.autoCommit) await git.commitPaths([comments.relFileFor(file)], `comentários: ${file} (${what})`);

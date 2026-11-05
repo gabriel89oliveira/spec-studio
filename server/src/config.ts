@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { ProxySettings } from "./proxy.js";
 import { z } from "zod";
 
 export type Config = {
@@ -15,6 +16,8 @@ export type Config = {
   customHeaders?: string;
   /** Executável do Claude empacotado com o app instalado. */
   claudeExecutable?: string;
+  /** Proxy da rede, definido pela tela de configurações. */
+  proxy?: ProxySettings;
   model: string;
   userName: string;
   port: number;

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, safeStorage, session, shell } from "electron";
 import { autoUpdater } from "electron-updater";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -37,6 +37,33 @@ function findClaudeBinary(): string | undefined {
     /* sem pacote desempacotado (modo dev) */
   }
   return undefined;
+}
+
+type Proxy = { enabled: boolean; mode: "manual" | "pac"; host: string; port: number | null; pacUrl: string; user: string; password: string };
+let proxyNow: Proxy | null = null;
+
+/** Lê o script de proxy (PAC) como o Windows faz: uma sessão do Chromium só para isso. */
+const pacSessions = new Map<string, Electron.Session>();
+async function resolvePac(pacUrl: string, target: string): Promise<string> {
+  let ses = pacSessions.get(pacUrl);
+  if (!ses) {
+    ses = session.fromPartition(`pac-${pacSessions.size}-${Date.now()}`, { cache: false });
+    await ses.setProxy({ mode: "pac_script", pacScript: pacUrl });
+    pacSessions.set(pacUrl, ses);
+  }
+  return ses.resolveProxy(target);
+}
+
+/** Aplica o proxy escolhido nas conexões do próprio app (atualizações). O Claude recebe o proxy por variáveis de ambiente. */
+async function applyProxy(p: Proxy): Promise<void> {
+  proxyNow = p;
+  try {
+    if (!p.enabled) await session.defaultSession.setProxy({ mode: "system" });
+    else if (p.mode === "pac") await session.defaultSession.setProxy({ mode: "pac_script", pacScript: p.pacUrl });
+    else await session.defaultSession.setProxy({ proxyRules: `http://${p.host}:${p.port}`, proxyBypassRules: "<local>" });
+  } catch (e) {
+    logFile(`proxy: ${e}`);
+  }
 }
 
 function hasGit(): Promise<boolean> {
@@ -106,6 +133,7 @@ async function boot(): Promise<void> {
     webDir: path.join(root, "web", "dist"),
     codec,
     picker,
+    pacResolver: resolvePac,
     log: logFile,
     app: {
       version: app.getVersion(),
@@ -122,6 +150,8 @@ async function boot(): Promise<void> {
     started = await startServer({ ...opts, port: 0 });
   }
   closeServer = started.close;
+  void applyProxy(started.settings.proxy());
+  started.settings.onChange(() => void applyProxy(started.settings.proxy()));
   logFile(`Servidor em ${started.url}`);
 
   win = new BrowserWindow({
@@ -166,6 +196,12 @@ if (!app.requestSingleInstanceLock()) {
       dialog.showErrorBox("Spec Studio não iniciou", String(err instanceof Error ? err.message : err));
       app.quit();
     }
+  });
+  // Proxy que pede usuário e senha: responde com o que foi salvo nas configurações.
+  app.on("login", (event, _wc, _req, info, callback) => {
+    if (!info.isProxy || !proxyNow?.enabled || !proxyNow.user) return;
+    event.preventDefault();
+    callback(proxyNow.user, proxyNow.password);
   });
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => {

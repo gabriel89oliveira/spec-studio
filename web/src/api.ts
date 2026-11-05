@@ -1,4 +1,4 @@
-import type { AppInfo, Settings, SettingsPatch, Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
+import type { ProxyTest, AppInfo, Settings, SettingsPatch, Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -51,6 +51,7 @@ export const api = {
   checkUpdate: () => req<{ ok: boolean }>("POST", "/api/app/check-update"),
   installUpdate: () => req<{ ok: boolean }>("POST", "/api/app/install-update"),
   settings: () => req<Settings | null>("GET", "/api/settings"),
+  testProxy: (p: { mode: "manual" | "pac"; host: string; port: number | null; pacUrl: string; user: string; password: string }) => req<ProxyTest>("POST", "/api/settings/test-proxy", p),
   saveSettings: (patch: SettingsPatch) => req<Settings>("PUT", "/api/settings", patch),
 
   workspace: () => req<WorkspaceInfo>("GET", "/api/workspace"),

@@ -26,6 +26,8 @@ type Deps = {
   bus: EventBus;
   tracker: SourceTracker;
   queryFn: QueryFn;
+  /** Proxy para esta chamada (resolvido na hora; pode vir de um script automático). */
+  proxyUrl?: () => Promise<string | undefined>;
 };
 
 /** Pastas que um trabalho do Claude pode alterar e que entram no commit. */
@@ -132,8 +134,9 @@ export class JobRunner {
     this.idle = (async () => {
       let res: AgentResult;
       try {
+        const proxyUrl = await this.d.proxyUrl?.();
         res = await runAgent(
-          this.claudeConfig,
+          { ...this.claudeConfig, proxyUrl },
           prompt,
           controller,
           {
