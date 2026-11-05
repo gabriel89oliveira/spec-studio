@@ -13,6 +13,8 @@ export type Config = {
   baseUrl?: string;
   /** Cabeçalhos extras exigidos pelo gateway, um "Nome: valor" por linha. */
   customHeaders?: string;
+  /** Executável do Claude empacotado com o app instalado. */
+  claudeExecutable?: string;
   model: string;
   userName: string;
   port: number;
@@ -44,6 +46,7 @@ const schema = z.object({
     emptyToUndefined,
     z.enum(["true", "false"], { error: "AUTO_COMMIT deve ser true ou false" }).default("true"),
   ),
+  SPEC_STUDIO_CLAUDE_BIN: z.preprocess(emptyToUndefined, z.string().optional()),
   CLAUDE_MOCK: z.preprocess(
     emptyToUndefined,
     z.enum(["true", "false"], { error: "CLAUDE_MOCK deve ser true ou false" }).default("false"),
@@ -82,6 +85,7 @@ export function loadBaseConfig(env: NodeJS.ProcessEnv = process.env): Omit<Confi
     authToken: v.ANTHROPIC_AUTH_TOKEN?.trim() || undefined,
     baseUrl: v.ANTHROPIC_BASE_URL?.trim() || undefined,
     customHeaders: v.ANTHROPIC_CUSTOM_HEADERS?.trim() || undefined,
+    claudeExecutable: v.SPEC_STUDIO_CLAUDE_BIN?.trim() || undefined,
     model: v.CLAUDE_MODEL,
     userName: v.USER_NAME,
     port: v.PORT,

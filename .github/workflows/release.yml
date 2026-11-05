@@ -1,0 +1,43 @@
+name: Release do aplicativo (Windows)
+
+# Para publicar uma versão: git tag v0.2.0 && git push origin v0.2.0
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Dependências do projeto
+        run: npm ci
+      - name: Testes
+        run: npm test
+      - name: Dependências do aplicativo
+        working-directory: desktop
+        run: npm ci
+      - name: Versão a partir da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: echo "SPEC_STUDIO_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Monta a pasta do aplicativo
+        working-directory: desktop
+        run: npm run stage
+      - name: Dependências de produção (traz o executável do Claude para Windows)
+        working-directory: desktop/stage
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: Gera o instalador e publica no repositório de releases
+        working-directory: desktop
+        env:
+          # Token com permissão de escrita no repositório público de releases (ver desktop/README.md)
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          # Opcional: certificado de assinatura de código (.pfx em base64) e senha
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npx electron-builder --win --publish always

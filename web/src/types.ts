@@ -143,3 +143,16 @@ export type Screen = "overview" | "issues" | "decisions";
 export type WsEntry = { path: string; name: string };
 export type WorkspaceInfo = { current: string | null; name: string | null; recent: WsEntry[]; home: string; sep: string };
 export type Browse = { path: string; parent: string | null; dirs: WsEntry[]; isProject: boolean; sep: string };
+
+export type UpdateState = { state: "idle" | "checking" | "downloading" | "ready" | "error"; version?: string; percent?: number; error?: string };
+export type AppInfo = { version: string; desktop: boolean; update: UpdateState };
+export type Settings = {
+  apiKeySet: boolean;
+  authTokenSet: boolean;
+  baseUrl: string;
+  customHeaders: string;
+  model: string;
+  userName: string;
+  secureStorage: boolean;
+};
+export type SettingsPatch = Partial<Pick<Settings, "baseUrl" | "customHeaders" | "model" | "userName">> & { apiKey?: string | null; authToken?: string | null };

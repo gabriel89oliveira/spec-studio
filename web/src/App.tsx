@@ -13,10 +13,11 @@ import { RenameSource } from "./components/RenameSource";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
 import { Header } from "./components/Header";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { useEvents } from "./hooks/useEvents";
 import { useLiveFile } from "./hooks/useLiveFile";
-import type { Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode, WorkspaceInfo } from "./types";
+import type { AppInfo, Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode, WorkspaceInfo } from "./types";
 import { ProjectPicker } from "./components/ProjectPicker";
 import { btn } from "./ui";
 
@@ -60,9 +61,22 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
   const [packFor, setPackFor] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [badges, setBadges] = useState({ issues: 0, decisions: 0 });
   const [rev, setRev] = useState(0);
   const live = useLiveFile(openPath);
+
+  useEffect(() => {
+    let stop = false;
+    const tick = () => api.appInfo().then((a) => !stop && setAppInfo(a)).catch(() => {});
+    void tick();
+    const t = setInterval(tick, 20000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, []);
 
   const keyBase = project ? `spec-studio:${project.projectDir}` : null;
   const openRef = useRef(openPath);
@@ -369,7 +383,19 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
 
   return (
     <div className="flex h-screen flex-col bg-[rgb(var(--canvas))] text-ink">
-      <Header project={project} busy={busy} lastError={lastError} connected={connected} onSwitch={() => setSwitching(true)} />
+      <Header project={project} busy={busy} lastError={lastError} connected={connected} onSwitch={() => setSwitching(true)} onSettings={() => setSettingsOpen(true)} />
+      {appInfo?.desktop && (appInfo.update.state === "ready" || appInfo.update.state === "downloading") && (
+        <div className="flex items-center justify-center gap-3 border-b border-line/70 bg-mark-soft px-4 py-1.5 text-xs text-mark-ink" data-testid="update-banner">
+          {appInfo.update.state === "ready" ? (
+            <>
+              <span>Nova versão {appInfo.update.version} pronta.</span>
+              <button className="font-semibold underline" onClick={() => void api.installUpdate()}>Reiniciar e atualizar</button>
+            </>
+          ) : (
+            <span>Baixando a nova versão{appInfo.update.percent != null ? ` (${Math.round(appInfo.update.percent)}%)` : ""}…</span>
+          )}
+        </div>
+      )}
       <div className="flex min-h-0 flex-1 gap-3 p-3">
         <FileTree
           tree={tree}
@@ -601,6 +627,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
           </div>
         </aside>
       </div>
+      {settingsOpen && <SettingsDialog app={appInfo} onClose={() => setSettingsOpen(false)} onSaved={() => void refreshProject()} />}
       {renaming && sourceMatch && <RenameSource id={sourceMatch[1]} current={sourceMatch[2].trim()} onSubmit={renameSource} onClose={() => setRenaming(false)} />}
       {switching && <ProjectPicker info={workspace} onClose={() => setSwitching(false)} />}
       {packFor && <DevPackModal featureId={packFor} onClose={() => setPackFor(null)} />}

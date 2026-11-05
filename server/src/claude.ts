@@ -44,7 +44,7 @@ export const realQuery: QueryFn = async function* (params) {
 
 /** Credenciais e destino das chamadas: chave da API ou token de gateway, com a URL do gateway se houver. */
 export type Auth = { apiKey?: string; authToken?: string; baseUrl?: string; customHeaders?: string };
-export type ClaudeConfig = { projectDir: string; model: string } & Auth;
+export type ClaudeConfig = { projectDir: string; model: string; /** Caminho do executável do Claude (app instalado). */ claudeExecutable?: string } & Auth;
 
 // ---------------------------------------------------------------------------
 // Guarda de caminhos
@@ -171,6 +171,7 @@ export function agentEnv(auth: string | Auth | undefined, base: NodeJS.ProcessEn
 export function buildOptions(cfg: ClaudeConfig, controller: AbortController, resume?: string, onStderr?: (d: string) => void): Options {
   return {
     cwd: cfg.projectDir,
+    ...(cfg.claudeExecutable ? { pathToClaudeCodeExecutable: cfg.claudeExecutable } : {}),
     settingSources: ["project"],
     tools: TOOLS,
     allowedTools: TOOLS,

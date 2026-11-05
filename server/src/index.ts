@@ -78,37 +78,37 @@ async function main(): Promise<void> {
   }
 
   log("Carregando módulos do servidor…");
-  const { Workspace } = await import("./workspace.js");
+  const { startServer } = await import("./start.js");
   const { envProjectDir, ...base } = config;
-  const ws = new Workspace(base);
+  const here2 = here;
+  const webDir = path.resolve(here2, "../../web/dist");
 
   log("Abrindo o repositório Git do projeto…");
-  const startError = await ws.start(envProjectDir);
-  if (startError) log(`${startError.replace("A pasta", "PROJECT_DIR")}. Escolha o projeto na tela.`);
-  log(ws.currentDir ? `Projeto: ${ws.currentDir}` : "Nenhum projeto aberto: escolha ou crie um na tela");
-
-  const httpServer = ws.app().listen(config.port, "127.0.0.1", () => {
-    log(`Servidor em http://127.0.0.1:${config.port}`);
+  let started;
+  try {
+    started = await startServer({ base, envProjectDir, port: config.port, webDir: process.env.SERVE_WEB === "true" ? webDir : undefined, log });
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
     log(
-      `Claude: ${
-        config.mock
-          ? "MODO SIMULADO (sem custo; tire CLAUDE_MOCK=true do .env para usar o Claude de verdade)"
-          : hasCredentials(config)
-            ? `ativado (${config.model}${config.baseUrl ? `, via ${config.baseUrl}` : ""}${config.authToken && !config.apiKey ? ", token de gateway" : ""})`
-            : "desativado (defina ANTHROPIC_API_KEY ou ANTHROPIC_AUTH_TOKEN no .env)"
-      }`,
-    );
-    log("Pronto. Abra http://localhost:5173 no navegador");
-    if (hasCredentials(config) && !config.mock) void warmUpClaude();
-  });
-  httpServer.on("error", (err: NodeJS.ErrnoException) => {
-    log(
-      err.code === "EADDRINUSE"
+      e.code === "EADDRINUSE"
         ? `A porta ${config.port} já está em uso por outro programa. Troque PORT no .env (ex.: PORT=3101) e reinicie.`
         : `Falha ao abrir a porta ${config.port}: ${errText(err)}`,
     );
     process.exit(1);
-  });
+  }
+  log(`Servidor em http://127.0.0.1:${config.port}`);
+  log(
+    `Claude: ${
+      config.mock
+        ? "MODO SIMULADO (sem custo; tire CLAUDE_MOCK=true do .env para usar o Claude de verdade)"
+        : hasCredentials(config)
+          ? `ativado (${config.model}${config.baseUrl ? `, via ${config.baseUrl}` : ""}${config.authToken && !config.apiKey ? ", token de gateway" : ""})`
+          : "desativado (defina ANTHROPIC_API_KEY ou ANTHROPIC_AUTH_TOKEN no .env, ou configure pela tela)"
+    }`,
+  );
+  log("Pronto. Abra http://localhost:5173 no navegador");
+  if (hasCredentials(config) && !config.mock) void warmUpClaude();
+  const ws = started.workspace;
 
   const shutdown = async () => {
     await ws.close();

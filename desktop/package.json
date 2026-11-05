@@ -1,0 +1,33 @@
+{
+  "name": "spec-studio-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spec Studio: editor de especificações com o Claude",
+  "author": "Gabriel Oliveira",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "stage": "npm run build && node scripts/stage.mjs",
+    "dist": "npm run stage && npm --prefix stage install --omit=dev && electron-builder --win --publish never",
+    "release": "npm run stage && npm --prefix stage install --omit=dev && electron-builder --win --publish always",
+    "dev": "npm run build && electron dist/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8",
+    "electron-updater": "6.3.9",
+    "typescript": "5.9.3"
+  },
+  "build": {
+    "appId": "br.com.specstudio.app",
+    "productName": "Spec Studio",
+    "electronVersion": "33.4.11",
+    "directories": { "app": "stage", "output": "release" },
+    "npmRebuild": false,
+    "asar": true,
+    "asarUnpack": ["node_modules/@anthropic-ai/claude-agent-sdk-*/**"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
+    "nsis": { "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
+    "publish": [{ "provider": "github", "owner": "gabriel89oliveira", "repo": "spec-studio-releases" }]
+  }
+}

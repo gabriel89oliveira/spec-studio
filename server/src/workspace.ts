@@ -8,10 +8,20 @@ import { createServer, type ServerOptions } from "./app.js";
 import { checkProjectDir, ConfigError, type Config } from "./config.js";
 import { EventBus } from "./events.js";
 import { nativeFolderPicker, type FolderPicker } from "./folderDialog.js";
+import { parseSettingsPatch, type SettingsStore } from "./settings.js";
 import { HttpError } from "./util.js";
 
 type Server = Awaited<ReturnType<typeof createServer>>;
 export type BaseConfig = Omit<Config, "projectDir">;
+
+/** O que o aplicativo instalado informa à tela: versão e estado da atualização automática. */
+export type AppInfo = {
+  version: string;
+  desktop: boolean;
+  update: () => { state: "idle" | "checking" | "downloading" | "ready" | "error"; version?: string; percent?: number; error?: string };
+  check: () => void;
+  install: () => void;
+};
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const KIT_DIR = path.resolve(here, "../../kit");
@@ -29,10 +39,20 @@ export class Workspace {
   private last: string | null = null;
 
   constructor(
-    private base: BaseConfig,
-    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean; picker?: FolderPicker } = {},
+    private envBase: BaseConfig,
+    private opts: { stateFile?: string; kitDir?: string; queryFn?: ServerOptions["queryFn"]; watch?: boolean; picker?: FolderPicker; settings?: SettingsStore; webDir?: string; app?: AppInfo } = {},
   ) {
+    this.base = opts.settings ? opts.settings.apply(envBase) : envBase;
     this.loadState();
+  }
+
+  private base: BaseConfig;
+
+  /** Relê o .env + configurações da tela e reabre o projeto atual com elas. */
+  async reconfigure(): Promise<void> {
+    if (this.server?.jobs.isRunning()) throw new HttpError(409, "Aguarde: o Claude está trabalhando neste projeto");
+    this.base = this.opts.settings ? this.opts.settings.apply(this.envBase) : this.envBase;
+    if (this.dir) await this.open(this.dir, false);
   }
 
   private get stateFile(): string {
@@ -103,7 +123,7 @@ export class Workspace {
     if (!fs.existsSync(parentDir) || !fs.statSync(parentDir).isDirectory()) throw new HttpError(400, `A pasta-mãe não existe: ${parentDir}`);
     const target = path.join(parentDir, name);
     if (fs.existsSync(target) && fs.readdirSync(target).length > 0) throw new HttpError(409, `Já existe uma pasta "${name}" com conteúdo em ${parentDir}`);
-    const kit = this.opts.kitDir ?? KIT_DIR;
+    const kit = this.opts.kitDir ?? process.env.SPEC_STUDIO_KIT ?? KIT_DIR;
     if (!fs.existsSync(path.join(kit, "CLAUDE.md"))) throw new HttpError(500, `Kit de especificação não encontrado em ${kit}`);
     fs.cpSync(kit, target, { recursive: true });
     return this.open(target);
@@ -153,6 +173,26 @@ export class Workspace {
     };
     const info = () => ({ current: this.dir, name: this.dir ? path.basename(this.dir) : null, recent: this.recents(), home: os.homedir(), sep: path.sep });
 
+    app.get("/api/app", wrap((_req, res) => res.json({ version: this.opts.app?.version ?? null, desktop: Boolean(this.opts.app?.desktop), update: this.opts.app?.update() ?? { state: "idle" } })));
+    app.post("/api/app/check-update", wrap((_req, res) => (this.opts.app?.check(), res.json({ ok: true }))));
+    app.post("/api/app/install-update", wrap((_req, res) => (this.opts.app?.install(), res.json({ ok: true }))));
+    app.get("/api/settings", wrap((_req, res) => res.json(this.opts.settings?.view(this.envBase) ?? null)));
+    app.put(
+      "/api/settings",
+      json,
+      wrap(async (req, res) => {
+        if (!this.opts.settings) throw new HttpError(404, "Configurações indisponíveis");
+        if (this.server?.jobs.isRunning()) throw new HttpError(409, "Aguarde: o Claude está trabalhando neste projeto");
+        try {
+          this.opts.settings.update(parseSettingsPatch(req.body));
+        } catch (e) {
+          if (e instanceof z.ZodError) throw e;
+          throw new HttpError(400, e instanceof Error ? e.message : String(e));
+        }
+        await this.reconfigure();
+        res.json(this.opts.settings.view(this.envBase));
+      }),
+    );
     app.get("/api/workspace", wrap((_req, res) => res.json(info())));
     app.get("/api/workspace/browse", wrap((req, res) => res.json(this.browse(typeof req.query.path === "string" ? req.query.path : undefined))));
     let picking = false;
@@ -190,12 +230,18 @@ export class Workspace {
       }),
     );
     app.use((req, res, next) => {
+      if (!req.path.startsWith("/api")) return next();
       if (!this.server) {
         res.status(409).json({ error: "Nenhum projeto aberto. Escolha ou crie um projeto.", noProject: true });
         return;
       }
       this.server.app(req, res, next);
     });
+    const webDir = this.opts.webDir;
+    if (webDir && fs.existsSync(path.join(webDir, "index.html"))) {
+      app.use(express.static(webDir, { index: "index.html" }));
+      app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(webDir, "index.html")));
+    }
     return app;
   }
 

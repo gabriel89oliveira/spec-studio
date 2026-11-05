@@ -7,9 +7,10 @@ type Props = {
   lastError: string | null;
   connected: boolean;
   onSwitch: () => void;
+  onSettings: () => void;
 };
 
-export function Header({ project, busy, lastError, connected, onSwitch }: Props) {
+export function Header({ project, busy, lastError, connected, onSwitch, onSettings }: Props) {
   let label = "Pronto";
   let dot = "bg-claude";
   if (!connected) {
@@ -69,6 +70,12 @@ export function Header({ project, busy, lastError, connected, onSwitch }: Props)
             custo: {formatCost(project.claude.lastCostUsd)}
           </span>
         )}
+        <button className="rounded-md p-1.5 text-ink-2 hover:bg-wash" onClick={onSettings} aria-label="Configurações" title="Configurações" data-testid="open-settings">
+          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <circle cx="10" cy="10" r="2.5" />
+            <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
+          </svg>
+        </button>
       </div>
     </header>
   );

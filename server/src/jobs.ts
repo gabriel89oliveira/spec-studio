@@ -43,8 +43,8 @@ export class JobRunner {
   constructor(private d: Deps) {}
 
   private get claudeConfig(): ClaudeConfig {
-    const { projectDir, model, apiKey, authToken, baseUrl, customHeaders } = this.d.config;
-    return { projectDir, model, apiKey, authToken, baseUrl, customHeaders };
+    const { projectDir, model, apiKey, authToken, baseUrl, customHeaders, claudeExecutable } = this.d.config;
+    return { projectDir, model, apiKey, authToken, baseUrl, customHeaders, claudeExecutable };
   }
 
   isRunning(): boolean {

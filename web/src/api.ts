@@ -1,4 +1,4 @@
-import type { Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
+import type { AppInfo, Settings, SettingsPatch, Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -46,6 +46,12 @@ export const api = {
   file: (path: string) => req<FileDoc>("GET", `/api/file?path=${q(path)}`),
   saveFile: (path: string, content: string, baseHash: string) =>
     req<{ path: string; hash: string; commit: string | null }>("PUT", "/api/file", { path, content, baseHash }),
+
+  appInfo: () => req<AppInfo>("GET", "/api/app"),
+  checkUpdate: () => req<{ ok: boolean }>("POST", "/api/app/check-update"),
+  installUpdate: () => req<{ ok: boolean }>("POST", "/api/app/install-update"),
+  settings: () => req<Settings | null>("GET", "/api/settings"),
+  saveSettings: (patch: SettingsPatch) => req<Settings>("PUT", "/api/settings", patch),
 
   workspace: () => req<WorkspaceInfo>("GET", "/api/workspace"),
   browse: (path?: string) => req<Browse>("GET", `/api/workspace/browse${path ? `?path=${q(path)}` : ""}`),
