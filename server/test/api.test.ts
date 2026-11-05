@@ -354,7 +354,7 @@ describe("Fase 5 — Histórico", () => {
 
     const rev = await api.post("/api/revert").send({ commit: hist.body[0].hash }).expect(200);
     expect(rev.body.files).toContain("docs/CONCEITO.md");
-    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8")).toBe(original);
+    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8").replace(/\r\n/g, "\n")).toBe(original);
     const after = await api.get("/api/history").query({ path: "docs/CONCEITO.md" });
     expect(after.body[0].origin).toBe("revert");
   });
@@ -368,7 +368,7 @@ describe("Fase 5 — Histórico", () => {
     const hist = await api.get("/api/history").query({ path: "docs/CONCEITO.md" });
     const res = await api.post("/api/revert").send({ commit: hist.body[1].hash }).expect(409);
     expect(res.body.error).toContain("mexeram nas mesmas linhas");
-    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8")).toBe("linha B\n");
+    expect(fs.readFileSync(path.join(dir, "docs", "CONCEITO.md"), "utf8").replace(/\r\n/g, "\n")).toBe("linha B\n");
     expect(await simpleGit(dir).status()).toMatchObject({ conflicted: [] });
   });
 });
