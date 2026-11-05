@@ -6,6 +6,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write # cria a release neste repositório
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -32,11 +35,10 @@ jobs:
       - name: Dependências de produção (traz o executável do Claude para Windows)
         working-directory: desktop/stage
         run: npm install --omit=dev --no-audit --no-fund
-      - name: Gera o instalador e publica no repositório de releases
+      - name: Gera o instalador e publica a release neste repositório
         working-directory: desktop
         env:
-          # Token com permissão de escrita no repositório público de releases (ver desktop/README.md)
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Opcional: certificado de assinatura de código (.pfx em base64) e senha
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}

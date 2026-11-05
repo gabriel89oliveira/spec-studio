@@ -35,11 +35,10 @@ O instalador precisa ser gerado no Windows: é o `npm install` de lá que traz o
 
 ## Publicar uma versão (atualização automática)
 
-1. Crie um repositório **público** só para releases (sugestão: `gabriel89oliveira/spec-studio-releases`).
-   O código-fonte continua privado; o `electron-updater` precisa baixar as versões sem credencial,
-   por isso os instaladores ficam num repositório público. Se usar outro nome, ajuste `build.publish` em `desktop/package.json`.
-2. Crie um token (fine-grained) com acesso de escrita a *Contents* desse repositório e guarde como segredo
-   `RELEASES_TOKEN` no repositório do código (Settings → Secrets → Actions).
+1. O repositório precisa ser **público**: o `electron-updater` baixa as versões sem credencial.
+   As releases são criadas no próprio `spec-studio` (`build.publish` em `desktop/package.json`).
+2. Em *Settings → Actions → General → Workflow permissions*, marque **Read and write permissions**
+   (o fluxo usa o `GITHUB_TOKEN` automático; não é preciso criar token nem segredo).
 3. Publique: `git tag v0.2.0 && git push origin v0.2.0`. O fluxo `.github/workflows/release.yml` roda os testes,
    gera o instalador e cria a release.
 4. Quem já tem o app instalado vê "Nova versão pronta — Reiniciar e atualizar" em até 4 horas (ou na hora de abrir o app).
