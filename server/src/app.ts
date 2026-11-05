@@ -13,7 +13,7 @@ import { analyzeDoc } from "./guide.js";
 import { checkProject } from "./consistency.js";
 import { loadProject } from "./project.js";
 import { devPack, overview, setStage, testPlan } from "./views.js";
-import { saveSource, SOURCE_TYPES } from "./sources.js";
+import { renameSource, saveSource, SOURCE_TYPES } from "./sources.js";
 import { GitService } from "./git.js";
 import { JobRunner } from "./jobs.js";
 import { PathError, resolveDocPath } from "./paths.js";
@@ -161,6 +161,24 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
       const commit = config.autoCommit ? await git.commitPaths([saved.ficha, saved.original], `fonte: ${body.name}`) : null;
       bus.emit("tree.changed", {});
       res.status(201).json({ ...saved, commit });
+    }),
+  );
+
+  app.post(
+    "/api/sources/rename",
+    h(async (req, res) => {
+      const body = parse(z.object({ path: z.string(), name: z.string() }), req.body);
+      const { rel } = resolveDocPath(root, body.path);
+      assertIdle();
+      const r = renameSource(root, rel, body.name);
+      const movedComments = comments.rename(r.oldFicha, r.ficha);
+      const { hash } = readDoc(path.join(root, ...r.ficha.split("/")), r.ficha);
+      tracker.mark(r.ficha, hash, "manual");
+      const paths = [r.oldFicha, r.ficha, ...(r.oldOriginal ? [r.oldOriginal] : []), ...(r.original ? [r.original] : []), ...r.updatedRefs];
+      if (movedComments) paths.push(comments.relFileFor(r.oldFicha), comments.relFileFor(r.ficha));
+      const commit = config.autoCommit ? await git.commitPaths([...new Set(paths)], `fonte: renomeada para "${r.name}"`) : null;
+      bus.emit("tree.changed", {});
+      res.json({ path: r.ficha, name: r.name, updatedRefs: r.updatedRefs, commit });
     }),
   );
 

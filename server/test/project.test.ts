@@ -155,3 +155,58 @@ describe("rotas", () => {
     expect((await request(app).post("/api/stage").send({ path: "docs/features/F01-abrir-ordem.md", stage: "Concluída" })).status).toBe(409);
   });
 });
+
+describe("renomear fonte", () => {
+  it("renomeia ficha, original, título, comentários e referências, mantendo o ID", async () => {
+    const dir = proj();
+    dirs.push(dir);
+    const { saveSource } = await import("../src/sources.js");
+    const s = saveSource(dir, { name: "Reunião kickoff", type: "reuniao", fileName: "a.txt", encoding: "text", content: "Fala do cliente" });
+    w(dir, "docs/features/F01-abrir-ordem.md", FEATURE("\n## Origem\nVeja docs/fontes/S01-reuniao-kickoff.md\n"));
+    const { app } = await createServer(makeConfig(dir, { mock: true }), { watch: false });
+    const c = await request(app).post("/api/comments").send({ file: s.ficha, anchor: { quote: "Resumo", prefix: "", suffix: "" }, body: "ver" });
+    expect(c.status).toBeLessThan(300);
+
+    const r = await request(app).post("/api/sources/rename").send({ path: s.ficha, name: "Kickoff com a Oficina Central" });
+    expect(r.status).toBe(200);
+    expect(r.body.path).toBe("docs/fontes/S01-kickoff-com-a-oficina-central.md");
+    expect(fs.existsSync(path.join(dir, s.ficha))).toBe(false);
+    const ficha = fs.readFileSync(path.join(dir, r.body.path), "utf8");
+    expect(ficha).toContain("# S01 — Kickoff com a Oficina Central");
+    expect(ficha).toContain("| Original | originais/S01-kickoff-com-a-oficina-central.txt |");
+    expect(fs.existsSync(path.join(dir, "docs/fontes/originais/S01-kickoff-com-a-oficina-central.txt"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "docs/fontes/originais/S01-reuniao-kickoff.txt"))).toBe(false);
+    expect(fs.readFileSync(path.join(dir, "docs/features/F01-abrir-ordem.md"), "utf8")).toContain("S01-kickoff-com-a-oficina-central.md");
+    expect(r.body.updatedRefs).toEqual(["docs/features/F01-abrir-ordem.md"]);
+    const moved = await request(app).get(`/api/comments?path=${encodeURIComponent(r.body.path)}`);
+    expect(moved.body).toHaveLength(1);
+    expect(moved.body[0].file).toBe(r.body.path);
+    expect((await request(app).get(`/api/comments?path=${encodeURIComponent(s.ficha)}`)).body).toHaveLength(0);
+  });
+
+  it("recusa nome igual, nome em branco, colisão e arquivos que não são fichas", async () => {
+    const dir = proj();
+    dirs.push(dir);
+    const { saveSource } = await import("../src/sources.js");
+    const a = saveSource(dir, { name: "Alfa", type: "outro", fileName: "a.md", encoding: "text", content: "x" });
+    saveSource(dir, { name: "Beta", type: "outro", fileName: "b.md", encoding: "text", content: "y" });
+    const { app } = await createServer(makeConfig(dir, { mock: true }), { watch: false });
+    const go = (p: string, name: string) => request(app).post("/api/sources/rename").send({ path: p, name });
+    expect((await go(a.ficha, "Alfa")).status).toBe(400);
+    expect((await go(a.ficha, "   ")).status).toBe(400);
+    expect((await go(a.ficha, "Beta")).status).toBe(200); // slug diferente de S02-beta: o ID mantém as duas distintas
+    expect((await go("docs/CONCEITO.md", "X")).status).toBe(400);
+  });
+
+  it("só muda o título quando o nome gera o mesmo arquivo", async () => {
+    const dir = proj();
+    dirs.push(dir);
+    const { saveSource } = await import("../src/sources.js");
+    const a = saveSource(dir, { name: "Reuniao", type: "reuniao", fileName: "a.txt", encoding: "text", content: "x" });
+    const { app } = await createServer(makeConfig(dir, { mock: true }), { watch: false });
+    const r = await request(app).post("/api/sources/rename").send({ path: a.ficha, name: "Reunião" });
+    expect(r.status).toBe(200);
+    expect(r.body.path).toBe(a.ficha);
+    expect(fs.readFileSync(path.join(dir, a.ficha), "utf8")).toContain("# S01 — Reunião");
+  });
+});

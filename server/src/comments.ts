@@ -37,6 +37,23 @@ export class CommentStore {
     return path.join(this.dir, ...docRel.split("/")) + ".json";
   }
 
+  /** Acompanha a mudança de nome de um documento: move o JSON e corrige o campo `file`. */
+  rename(oldRel: string, newRel: string): boolean {
+    const from = this.absFileFor(oldRel);
+    if (!fs.existsSync(from)) return false;
+    const to = this.absFileFor(newRel);
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.renameSync(from, to);
+    try {
+      const data = JSON.parse(fs.readFileSync(to, "utf8"));
+      const fix = (c: { file?: string }) => (c.file === oldRel ? { ...c, file: newRel } : c);
+      fs.writeFileSync(to, JSON.stringify(Array.isArray(data) ? data.map(fix) : data.comments ? { ...data, comments: data.comments.map(fix) } : data, null, 2));
+    } catch {
+      /* JSON ilegível: fica como estava */
+    }
+    return true;
+  }
+
   list(docRel: string): Comment[] {
     const abs = this.absFileFor(docRel);
     if (!fs.existsSync(abs)) return [];

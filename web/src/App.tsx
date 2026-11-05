@@ -9,6 +9,7 @@ import { applyTask, type TaskAction } from "./tasks";
 import { IconClose } from "./components/Icons";
 import { DecisionsScreen, DevPackModal, IssuesScreen, OverviewScreen, SCREEN_LABEL } from "./components/Screens";
 import { MatrixEditor } from "./components/MatrixEditor";
+import { RenameSource } from "./components/RenameSource";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
 import { Header } from "./components/Header";
@@ -58,6 +59,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
   const [screen, setScreen] = useState<Screen | null>(null);
   const [packFor, setPackFor] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [badges, setBadges] = useState({ issues: 0, decisions: 0 });
   const [rev, setRev] = useState(0);
   const live = useLiveFile(openPath);
@@ -344,6 +346,22 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
     </button>
   );
 
+  const sourceMatch = live.doc?.guide?.kind === "source" ? live.doc.content.match(/^#\s+(S\d+)\s*[—-]\s*(.*)$/m) : null;
+
+  const renameSource = async (name: string): Promise<string | null> => {
+    const d = live.doc;
+    if (!d) return "Nenhum arquivo aberto";
+    try {
+      const r = await api.renameSource(d.path, name);
+      await refreshTree();
+      setRenaming(false);
+      setOpenPath(r.path);
+      return null;
+    } catch (e) {
+      return errText(e);
+    }
+  };
+
   const crumbs = screen ? [SCREEN_LABEL[screen]] : (openPath?.split("/") ?? []);
   const showDoc = !screen;
   const featureId = live.doc?.guide?.kind === "feature" ? live.doc.path.match(/F\d+/i)?.[0]?.toUpperCase() : undefined;
@@ -374,7 +392,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
-            <nav aria-label="Caminho do arquivo" className="flex min-w-0 items-center gap-1.5 text-xs text-ink-3" data-testid="open-path">
+            <nav aria-label="Caminho do arquivo" className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-ink-3" data-testid="open-path">
               {crumbs.length === 0 && "Nenhum arquivo aberto"}
               {crumbs.map((c, i) => (
                 <Fragment key={i}>
@@ -387,6 +405,11 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
                 </Fragment>
               ))}
             </nav>
+            {showDoc && sourceMatch && mode === "view" && (
+              <button className={`${btn} ml-auto shrink-0`} disabled={busy} onClick={() => setRenaming(true)} data-testid="rename-source-btn" title="Mudar o nome desta fonte e dos arquivos dela">
+                Renomear fonte
+              </button>
+            )}
             <div
               role="tablist"
               aria-label="Modo"
@@ -578,6 +601,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
           </div>
         </aside>
       </div>
+      {renaming && sourceMatch && <RenameSource id={sourceMatch[1]} current={sourceMatch[2].trim()} onSubmit={renameSource} onClose={() => setRenaming(false)} />}
       {switching && <ProjectPicker info={workspace} onClose={() => setSwitching(false)} />}
       {packFor && <DevPackModal featureId={packFor} onClose={() => setPackFor(null)} />}
     </div>
