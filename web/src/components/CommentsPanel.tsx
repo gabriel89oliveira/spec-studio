@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Anchor, Comment, LiveJob } from "../types";
@@ -21,6 +21,40 @@ type Props = {
   onSend: (id: string) => Promise<void>;
   onCancelJob: () => void;
 };
+
+/** Recolhimento individual dos comentários, lembrado entre sessões. */
+type Fold = { folded: Set<string>; toggle: (id: string) => void; expand: (id: string) => void };
+const FOLD_KEY = "spec-studio.folded-comments";
+
+function useFold(ids: string[]): Fold & { setAll: (fold: boolean) => void } {
+  const [folded, setFolded] = useState<Set<string>>(() => {
+    try {
+      return new Set<string>(JSON.parse(localStorage.getItem(FOLD_KEY) ?? "[]"));
+    } catch {
+      return new Set();
+    }
+  });
+  const save = (next: Set<string>) => {
+    try {
+      localStorage.setItem(FOLD_KEY, JSON.stringify([...next].slice(-500)));
+    } catch {
+      /* sem armazenamento: vale só nesta sessão */
+    }
+    return next;
+  };
+  const update = (fn: (s: Set<string>) => void) =>
+    setFolded((cur) => {
+      const next = new Set(cur);
+      fn(next);
+      return save(next);
+    });
+  return {
+    folded,
+    toggle: (id) => update((s) => void (s.has(id) ? s.delete(id) : s.add(id))),
+    expand: (id) => folded.has(id) && update((s) => void s.delete(id)),
+    setAll: (fold) => update((s) => ids.forEach((id) => (fold ? s.add(id) : s.delete(id)))),
+  };
+}
 
 const STATUS: Record<Comment["status"], { text: string; bar: string }> = {
   open: { text: "aberto", bar: "bg-mark" },
@@ -63,13 +97,20 @@ function LiveWork({ job, onCancel }: { job: LiveJob; onCancel: () => void }) {
   );
 }
 
-function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean }) {
+function Card({ c, props, orphan, fold }: { c: Comment; props: Props; orphan?: boolean; fold: Fold }) {
   const [replying, setReplying] = useState(false);
   const [reply, setReply] = useState("");
   const active = props.activeId === c.id;
   const working = props.job?.kind === "comment" && props.job.commentId === c.id;
   const st = STATUS[c.status];
   const canSend = props.claudeEnabled && !props.busy && c.status !== "resolved";
+  const isFolded = fold.folded.has(c.id) && !working && !replying;
+
+  // Clicar no trecho do documento (ou o Claude começar a trabalhar) abre o comentário recolhido.
+  useEffect(() => {
+    if (active || working) fold.expand(c.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, working]);
 
   const submitReply = async (andSend: boolean) => {
     const body = reply.trim();
@@ -89,12 +130,36 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
       onClick={() => !orphan && props.onFocus(c.id)}
     >
       <span className={`absolute inset-y-0 left-0 w-[3px] ${st.bar}`} aria-hidden="true" />
-      <div className="mb-2 flex items-baseline justify-between gap-2 text-xs">
-        <span className="min-w-0 truncate">
-          <span className="font-semibold text-ink">{c.author}</span> <span className="text-ink-3">{formatDate(c.createdAt)}</span>
+      <div className={`${isFolded ? "" : "mb-2"} flex items-center justify-between gap-2 text-xs`}>
+        <span className="flex min-w-0 items-center gap-1">
+          <button
+            className="-ml-1 shrink-0 rounded p-1 text-ink-3 hover:bg-wash hover:text-ink"
+            aria-label={isFolded ? "Expandir comentário" : "Recolher comentário"}
+            aria-expanded={!isFolded}
+            title={isFolded ? "Expandir" : "Recolher"}
+            data-testid="fold-comment"
+            onClick={(e) => {
+              e.stopPropagation();
+              fold.toggle(c.id);
+            }}
+          >
+            <IconChevron className={`h-3 w-3 transition-transform ${isFolded ? "" : "rotate-90"}`} />
+          </button>
+          <span className="min-w-0 truncate">
+            <span className="font-semibold text-ink">{c.author}</span> <span className="text-ink-3">{formatDate(c.createdAt)}</span>
+          </span>
         </span>
-        <span className="shrink-0 text-ink-3">{st.text}</span>
+        <span className="shrink-0 text-ink-3">
+          {isFolded && c.replies.length > 0 && <span className="mr-2 tabular-nums">{c.replies.length} {c.replies.length === 1 ? "resposta" : "respostas"}</span>}
+          {st.text}
+        </span>
       </div>
+      {isFolded ? (
+        <p className="ml-5 mt-0.5 truncate text-[13px] text-ink-2" title={c.body} data-testid="comment-summary">
+          {c.body}
+        </p>
+      ) : (
+        <>
       <Quote text={c.anchor.quote} />
       <p className="mt-2 whitespace-pre-wrap leading-snug text-ink">{c.body}</p>
 
@@ -190,6 +255,8 @@ function Card({ c, props, orphan }: { c: Comment; props: Props; orphan?: boolean
           )}
         </div>
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -242,6 +309,7 @@ function Section({
   props,
   orphan,
   collapsed,
+  fold,
 }: {
   title: string;
   hint?: string;
@@ -249,6 +317,7 @@ function Section({
   props: Props;
   orphan?: boolean;
   collapsed?: boolean;
+  fold: Fold;
 }) {
   const [open, setOpen] = useState(!collapsed);
   if (items.length === 0) return null;
@@ -260,7 +329,7 @@ function Section({
         <span className="font-normal tabular-nums text-ink-3">{items.length}</span>
       </button>
       {hint && open && <p className="text-xs text-ink-3">{hint}</p>}
-      {open && items.map((c) => <Card key={c.id} c={c} props={props} orphan={orphan} />)}
+      {open && items.map((c) => <Card key={c.id} c={c} props={props} orphan={orphan} fold={fold} />)}
     </section>
   );
 }
@@ -273,8 +342,18 @@ export function CommentsPanel(props: Props) {
   const answered = live.filter((c) => c.status === "answered");
   const resolved = comments.filter((c) => c.status === "resolved");
 
+  const fold = useFold(comments.map((c) => c.id));
+  const allFolded = comments.length > 0 && comments.every((c) => fold.folded.has(c.id));
+
   return (
     <div className="space-y-5 p-3.5" data-testid="comments-panel">
+      {comments.length > 1 && (
+        <div className="-mb-2 flex justify-end">
+          <button className="text-xs text-ink-3 underline-offset-2 hover:text-ink hover:underline" onClick={() => fold.setAll(!allFolded)} data-testid="fold-all">
+            {allFolded ? "Expandir todos" : "Recolher todos"}
+          </button>
+        </div>
+      )}
       {props.pending && <NewComment anchor={props.pending} onCreate={props.onCreate} onCancel={props.onCancelPending} />}
       {comments.length === 0 && !props.pending && (
         <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
@@ -283,10 +362,10 @@ export function CommentsPanel(props: Props) {
           <p className="text-xs leading-snug text-ink-3">Selecione um trecho do documento e clique em Comentar.</p>
         </div>
       )}
-      <Section title="Abertos" items={open} props={props} />
-      <Section title="Respondidos" items={answered} props={props} />
-      <Section title="Órfãos" hint="O trecho destes comentários não existe mais no texto atual." items={orphans} props={props} orphan />
-      <Section title="Resolvidos" items={resolved} props={props} collapsed />
+      <Section title="Abertos" items={open} props={props} fold={fold} />
+      <Section title="Respondidos" items={answered} props={props} fold={fold} />
+      <Section title="Órfãos" hint="O trecho destes comentários não existe mais no texto atual." items={orphans} props={props} orphan fold={fold} />
+      <Section title="Resolvidos" items={resolved} props={props} collapsed fold={fold} />
     </div>
   );
 }
