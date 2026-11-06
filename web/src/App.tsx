@@ -12,6 +12,7 @@ import { MatrixEditor } from "./components/MatrixEditor";
 import { RenameSource } from "./components/RenameSource";
 import { Editor } from "./components/Editor";
 import { FileTree } from "./components/FileTree";
+import { Resizer, usePaneWidth } from "./components/Resizer";
 import { Header } from "./components/Header";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { HistoryPanel } from "./components/HistoryPanel";
@@ -62,6 +63,8 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
   const [switching, setSwitching] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const treePane = usePaneWidth("tree-width", 248, 180, 520);
+  const sidePane = usePaneWidth("side-width", 368, 300, 760);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [badges, setBadges] = useState({ issues: 0, decisions: 0 });
   const [rev, setRev] = useState(0);
@@ -398,6 +401,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
       )}
       <div className="flex min-h-0 flex-1 gap-3 p-3">
         <FileTree
+          width={treePane.width}
           tree={tree}
           openPath={screen ? null : openPath}
           screen={screen}
@@ -416,7 +420,8 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
           onImport={importSource}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <Resizer pane={treePane} grows="right" label="Largura da árvore de arquivos" testId="resize-tree" />
+        <main className="flex min-w-[360px] flex-1 flex-col">
           <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
             <nav aria-label="Caminho do arquivo" className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-ink-3" data-testid="open-path">
               {crumbs.length === 0 && "Nenhum arquivo aberto"}
@@ -563,7 +568,8 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
           </div>
         </main>
 
-        <aside className="flex w-[360px] shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-[380px]">
+        <Resizer pane={sidePane} grows="left" label="Largura do painel de comentários e chat" testId="resize-side" />
+        <aside style={{ width: sidePane.width }} className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)]">
           <div role="tablist" aria-label="Painel" className="flex shrink-0 items-center gap-1 border-b border-line/70 p-2">
             {(["comments", "chat"] as const).map((t) => (
               <button

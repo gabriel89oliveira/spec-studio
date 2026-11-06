@@ -5,6 +5,7 @@ import { IconChevron, IconFile, IconPlus } from "./Icons";
 import { ImportSource, type SourcePayload } from "./ImportSource";
 
 type Props = {
+  width: number;
   tree: TreeNode[];
   openPath: string | null;
   changed: Set<string>;
@@ -228,7 +229,7 @@ export function FileTree(props: Props) {
   const nested = useMemo(() => nestFeatures(props.tree), [props.tree]);
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col overflow-clip rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)] 2xl:w-64">
+    <aside style={{ width: props.width }} className="flex shrink-0 flex-col overflow-clip rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)]">
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
         <ul className="mb-2 space-y-0.5 border-b border-line/60 pb-2" aria-label="Visões do projeto">
           {([["overview", "Visão geral", 0], ["issues", "Problemas", props.badges.issues], ["decisions", "Decisões", props.badges.decisions]] as const).map(([id, label, n]) => (
