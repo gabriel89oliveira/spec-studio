@@ -25,7 +25,7 @@
     "directories": { "app": "stage", "output": "release" },
     "npmRebuild": false,
     "asar": true,
-    "asarUnpack": ["**/node_modules/@anthropic-ai/claude-agent-sdk-*/**"],
+    "asarUnpack": ["**/node_modules/@anthropic-ai/claude-agent-sdk-*/**", "kit/**"],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
     "nsis": { "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
     "publish": [{ "provider": "github", "owner": "gabriel89oliveira", "repo": "spec-studio", "releaseType": "release" }]

@@ -31,6 +31,17 @@ const MAX_RECENT = 8;
 export type Entry = { path: string; name: string };
 
 /** Pasta do projeto atual, projetos recentes e criação de projeto novo, sem reiniciar o servidor. */
+/** Cópia recursiva só com readdir/copyFile: o fs.cpSync usa opendir, que o Electron não suporta dentro de um .asar. */
+function copyDir(from: string, to: string): void {
+  fs.mkdirSync(to, { recursive: true });
+  for (const e of fs.readdirSync(from, { withFileTypes: true })) {
+    const a = path.join(from, e.name);
+    const b = path.join(to, e.name);
+    if (e.isDirectory()) copyDir(a, b);
+    else fs.copyFileSync(a, b);
+  }
+}
+
 export class Workspace {
   readonly bus = new EventBus();
   private server: Server | null = null;
@@ -138,7 +149,7 @@ export class Workspace {
     if (fs.existsSync(target) && fs.readdirSync(target).length > 0) throw new HttpError(409, `Já existe uma pasta "${name}" com conteúdo em ${parentDir}`);
     const kit = this.opts.kitDir ?? process.env.SPEC_STUDIO_KIT ?? KIT_DIR;
     if (!fs.existsSync(path.join(kit, "CLAUDE.md"))) throw new HttpError(500, `Kit de especificação não encontrado em ${kit}`);
-    fs.cpSync(kit, target, { recursive: true });
+    copyDir(kit, target);
     return this.open(target);
   }
 
