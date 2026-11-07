@@ -22,7 +22,7 @@ Este projeto segue desenvolvimento guiado por especificação. A documentação 
 
 ## IDs
 
-- `M01` módulo · `F01` feature · `US-01.1` história · `RN-01.1` regra de negócio · `D-001` decisão · `SV01` serviço · `RNF-01` requisito não funcional.
+- `M01` módulo · `F01` feature · `US-01.1` história · `RN-01.1` regra de negócio · `D-001` decisão · `SV01` serviço · `RNF-01` requisito não funcional · `CA-01.1.1` critério de aceite · `EP-SV01-01` endpoint · `EV-SV01-01` evento.
 - IDs nunca são renumerados nem reaproveitados. Para criar um novo, use o próximo número livre.
 - Cite os IDs em nomes de testes, mensagens de commit e descrições de PR.
 
@@ -36,7 +36,7 @@ Uma feature ou um módulo novo começa só com o esqueleto de `docs/_templates/`
 |---|---|---|
 | Ideia | Objetivo (1 frase), Quem usa (ao menos um perfil), Módulo | Objetivo, Quem usa |
 | Entendida | Histórias de usuário (ao menos uma) e Fora do escopo | Histórias de usuário (`### US-xx.n — título` e "Como **perfil**, quero **ação**, para **benefício**"), Fora do escopo, Dúvidas em aberto |
-| Detalhada | Critérios de aceite em todas as histórias, Regras de negócio (ou a declaração de que não há) e nenhuma dúvida em aberto | Critérios de aceite (Dado/Quando/Então, com ao menos um caso de erro), Regras de negócio (`RN-xx.n`), Dados (só campos que as regras citam) |
+| Detalhada | Critérios de aceite em todas as histórias, Regras de negócio (ou a declaração de que não há) e nenhuma dúvida em aberto | Critérios de aceite (Dado/Quando/Então, com ao menos um caso de erro; cada critério com ID `CA-01.1.1`: `CA-` + número da feature + número da história + número do critério), Regras de negócio (`RN-xx.n`), Dados (só campos que as regras citam) |
 | Pronta para dev | Revisão final e confirmação do usuário | nada novo: a linha Etapa passa a "Pronta para dev" |
 
 Depois de "Pronta para dev" a linha Etapa segue: Em desenvolvimento, Concluída ou Cancelada. Telas, notificações e integrações só entram se o usuário disser que a feature tem.

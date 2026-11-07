@@ -16,7 +16,7 @@ const w = (dir: string, rel: string, c: string) => {
 };
 
 const FEATURE = (extra = "", etapa = "Ideia", mod = "M01") =>
-  `# F01 — Abrir ordem\n\n| Campo | Valor |\n|---|---|\n| Módulo | ${mod} |\n| Etapa | ${etapa} |\n\n## Objetivo\nAbrir uma ordem.\n\n## Quem usa\n- Gestor\n- Mecânico\n\n## Histórias de usuário\n\n### US-01.1 — Abrir pelo painel\nComo gestor, quero abrir.\n\n**Critérios de aceite**\n- Dado um veículo, quando abro, então a ordem é criada.\n- Dado veículo inexistente, então erro.\n\n## Fora do escopo\n- Pagamento\n\n## Regras de negócio\n- RN-01.1 Uma ordem por veículo.\n\n## Permissões\n- Abrir ordem — Gestor, Auditor\n${extra}`;
+  `# F01 — Abrir ordem\n\n| Campo | Valor |\n|---|---|\n| Módulo | ${mod} |\n| Etapa | ${etapa} |\n\n## Objetivo\nAbrir uma ordem.\n\n## Quem usa\n- Gestor\n- Mecânico\n\n## Histórias de usuário\n\n### US-01.1 — Abrir pelo painel\nComo gestor, quero abrir.\n\n**Critérios de aceite**\n- CA-01.1.1 Dado um veículo, quando abro, então a ordem é criada.\n- CA-01.1.2 Dado veículo inexistente, então erro.\n\n## Fora do escopo\n- Pagamento\n\n## Regras de negócio\n- RN-01.1 Uma ordem por veículo.\n\n## Permissões\n- Abrir ordem — Gestor, Auditor\n${extra}`;
 
 const CONCEITO = `# DriveB — Conceito\n\n## Resumo\nFrotas.\n\n## Problema\nPlanilhas.\n\n## Perfis de usuário\n| Perfil | Quem é | O que precisa fazer |\n|---|---|---|\n| Gestor | Dono | Acompanhar |\n\n## Solução\nPainel.\n\n## Escopo\n**Dentro (MVP)**\n- Ordens\n\n**Fora (por enquanto)**\n- Pagamento\n\n## Mapa de módulos\n| ID | Módulo | Responsabilidade |\n|---|---|---|\n| M01 | Ordens | Ordens |\n| M02 | Frota | Veículos |\n\n## Requisitos gerais\n- LGPD\n\n## Diretrizes técnicas\nNode.\n`;
 
@@ -97,10 +97,10 @@ describe("consistência", () => {
 describe("etapas, plano de testes e pacote", () => {
   it("lê histórias e critérios, e gera um caso de teste por critério", () => {
     const p = loadProject(proj());
-    expect(storiesOf(p.features[0].content)).toEqual([{ id: "US-01.1", title: "Abrir pelo painel", criteria: ["Dado um veículo, quando abro, então a ordem é criada.", "Dado veículo inexistente, então erro."] }]);
+    expect(storiesOf(p.features[0].content)).toEqual([{ id: "US-01.1", title: "Abrir pelo painel", criteria: ["CA-01.1.1 Dado um veículo, quando abro, então a ordem é criada.", "CA-01.1.2 Dado veículo inexistente, então erro."] }]);
     const plan = testPlan(p.features[0]);
-    expect(plan).toContain("**US-01.1.T1**");
-    expect(plan).toContain("**US-01.1.T2**");
+    expect(plan).toContain("**CA-01.1.1**");
+    expect(plan).toContain("**CA-01.1.2**");
   });
 
   it("deduz a etapa e controla as transições", () => {
@@ -148,7 +148,7 @@ describe("rotas", () => {
     expect((await request(app).get("/api/decisions")).body).toHaveLength(2);
     const dp = await request(app).get("/api/devpack?feature=F01");
     expect(dp.status).toBe(200);
-    expect(dp.body.testPlan).toContain("T1");
+    expect(dp.body.testPlan).toContain("CA-01.1.1");
     expect((await request(app).get("/api/devpack?feature=F77")).status).toBe(404);
     const st = await request(app).post("/api/stage").send({ path: "docs/features/F01-abrir-ordem.md", stage: "Pronta para dev" });
     expect(st.status).toBe(200);

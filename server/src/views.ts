@@ -1,6 +1,5 @@
-import { vagueSpec } from "./architecture.js";
+import { coveredModules, entitiesOf, vagueSpec } from "./architecture.js";
 import { FEATURE_STEPS, norm, sectionsOf } from "./guide.js";
-import { coveredModules } from "./architecture.js";
 import type { Issue } from "./consistency.js";
 import type { Decision, Feature, Project } from "./project.js";
 import { HttpError } from "./util.js";
@@ -65,7 +64,7 @@ export function overview(p: Project, issues: Issue[]): Overview {
   const coveredSet = new Set([...covered.values()].flat());
   const moduleIds = [...new Set([...p.modules.map((m) => m.id), ...(p.concept?.moduleIds ?? [])])];
   const arch = p.architecture;
-  const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.infra, arch.docs.exec, arch.docs.transv, arch.docs.riscos].some((c) => !!c && sectionsOfHasContent(c));
+  const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.modelo, arch.docs.infra, arch.docs.exec, arch.docs.transv, arch.docs.testes, arch.docs.riscos].some((c) => !!c && sectionsOfHasContent(c));
   if (started && arch.guide.current && arch.guide.missing[0]) next.push({ text: `Arquitetura: ${arch.guide.missing[0].label}`, path: arch.guide.missing[0].file ?? "docs/arquitetura/visao.md" });
   const conceptSec = p.concept ? sectionsOf(p.concept.content) : new Map<string, string>();
   return {
@@ -122,10 +121,13 @@ export function storiesOf(content: string): Story[] {
 
 /** Plano de testes: um caso por critério de aceite, rastreável até a história e a feature. */
 export function testPlan(f: Feature): string {
-  const out = [`# Plano de testes — ${f.id} ${f.name}`, ""];
+  const out = [`# Plano de testes — ${f.id} ${f.name}`, "", "Cada caso tem um ID (CA-…). Cite-o no nome do teste (ex.: `test_CA_01_1_1`) para que a cobertura da spec possa ser conferida.", ""];
   for (const s of storiesOf(f.content)) {
     out.push(`## ${s.id} — ${s.title}`);
-    s.criteria.forEach((c, i) => out.push(`- [ ] **${s.id}.T${i + 1}** ${c}`));
+    s.criteria.forEach((c, i) => {
+      const ca = c.match(/^CA-[\w.]+/i)?.[0].toUpperCase();
+      out.push(`- [ ] **${ca ?? `${s.id}.T${i + 1}`}** ${ca ? c.replace(/^CA-[\w.]+\s*[:—–-]?\s*/i, "") : c}`);
+    });
     if (!s.criteria.length) out.push("- (sem critérios de aceite)");
     out.push("");
   }
@@ -135,6 +137,34 @@ export function testPlan(f: Feature): string {
 }
 
 /* ---------- Pacote para o desenvolvimento ---------- */
+
+const stripTitle = (c: string) => c.replace(/^#\s+.*\n+/, "").trim();
+
+/** O que o programador precisa da arquitetura: serviço dono, contratos, entidades, cenários, transversais e testes. */
+function archPack(p: Project, f: Feature, warnings: string[]): string[] {
+  const a = p.architecture;
+  const mine = f.moduleId ? a.services.filter((s) => coveredModules(s.content).includes(f.moduleId!)) : [];
+  if (!mine.length) {
+    if (a.services.length) warnings.push(`O módulo ${f.moduleId ?? "da feature"} não está em nenhum serviço da arquitetura.`);
+    return [];
+  }
+  const out: string[] = [];
+  for (const s of mine) {
+    if (s.guide && s.guide.current) warnings.push(`O serviço ${s.id} ainda está na etapa ${s.guide.current}.`);
+    out.push(`# Serviço ${s.id} — ${s.name}`, "", stripTitle(s.content), "");
+  }
+  const ids = new Set(mine.map((s) => s.id));
+  const ents = entitiesOf(a.docs.modelo).filter((e) => e.owner && ids.has(e.owner));
+  if (ents.length) out.push("# Entidades dos serviços acima", "", ...ents.map((e) => e.raw + "\n"));
+  const cen = (sectionsOf(a.docs.exec ?? "").get("cenarios") ?? "")
+    .split(/^###\s+/m)
+    .slice(1)
+    .filter((b) => [...ids].some((id) => new RegExp(`\\b${id}\\b`, "i").test(b)));
+  if (cen.length) out.push("# Cenários de execução que envolvem estes serviços", "", ...cen.map((b) => `### ${b.trimEnd()}\n`));
+  if (a.docs.transv?.trim() && sectionsOfHasContent(a.docs.transv)) out.push("# Conceitos transversais (valem para todo o código)", "", stripTitle(a.docs.transv), "");
+  if (a.docs.testes?.trim() && sectionsOfHasContent(a.docs.testes)) out.push("# Estratégia de testes", "", stripTitle(a.docs.testes), "");
+  return out;
+}
 
 export function devPack(p: Project, featureId: string): { title: string; markdown: string; warnings: string[] } {
   const f = p.features.find((x) => x.id === featureId.toUpperCase());
@@ -175,6 +205,7 @@ export function devPack(p: Project, featureId: string): { title: string; markdow
     for (const d of decisions) parts.push(`- **${d.id} — ${d.title}** (${d.status})${d.decision ? `: ${d.decision}` : ""}`);
     parts.push("");
   }
+  parts.push(...archPack(p, f, warnings));
   parts.push(testPlan(f).replace(/^# /, "# "));
   return { title: `${f.id} ${f.name}`, markdown: parts.join("\n").trimEnd() + "\n", warnings };
 }

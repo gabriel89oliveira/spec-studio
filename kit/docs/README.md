@@ -48,7 +48,7 @@ Cada módulo e cada feature nasce pequeno e cresce por etapas. Você não precis
 | Módulo | Ideia → Mapeado → Detalhado |
 | Conceito | Visão → Escopo → Requisitos |
 | Matriz de permissões | Perfis → Ações → Preenchida |
-| Arquitetura | Contexto → Serviços → Dados e integrações → Infraestrutura → Qualidade |
+| Arquitetura | Contexto → Serviços → Dados e integrações → Infraestrutura → Comportamento → Qualidade → Riscos |
 | Serviço | Ideia → Definido → Detalhado |
 
 1. Comece pelo Conceito: visão, perfis, escopo e o mapa de módulos.

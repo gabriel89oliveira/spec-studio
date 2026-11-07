@@ -60,7 +60,7 @@ export function kindOfPath(rel: string): DocKind | null {
   if (/^docs\/CONCEITO\.md$/i.test(rel)) return "concept";
   if (/^docs\/permissoes\.md$/i.test(rel)) return "matrix";
   if (/^docs\/arquitetura\/servicos\/[^/]+\.md$/i.test(rel)) return "service";
-  if (/^docs\/arquitetura\/(visao|dados-e-integracoes|infraestrutura|execucao|conceitos-transversais|requisitos-nao-funcionais|riscos-e-divida)\.md$/i.test(rel)) return "architecture";
+  if (/^docs\/arquitetura\/(visao|dados-e-integracoes|modelo-de-dados|infraestrutura|execucao|conceitos-transversais|estrategia-de-testes|requisitos-nao-funcionais|riscos-e-divida)\.md$/i.test(rel)) return "architecture";
   return null;
 }
 
@@ -358,6 +358,28 @@ export function keyValues(body: string | undefined): Map<string, string> {
   return out;
 }
 
+export type Endpoint = { id: string; method: string; path: string; description: string; who: string; errors: string };
+export type DomainEvent = { id: string; name: string; when: string; fields: string; consumers: string };
+
+/** Endpoints e eventos declarados nas tabelas de "API e contratos" (reconhecidos pelo cabeçalho). */
+export function contractsOf(body: string | undefined): { endpoints: Endpoint[]; events: DomainEvent[] } {
+  const endpoints: Endpoint[] = [];
+  const events: DomainEvent[] = [];
+  for (const part of (body ?? "").split(/^###\s+/m)) {
+    const t = tableOf(part);
+    const col = (names: string[]) => t.header.findIndex((h) => names.some((n) => norm(h).startsWith(n)));
+    const cell = (r: string[], i: number) => (i < 0 ? "" : (r[i] ?? "").trim());
+    if (col(["caminho"]) >= 0) {
+      const [i, m, c, d, q, e] = [col(["id"]), col(["metodo"]), col(["caminho"]), col(["descricao"]), col(["quem"]), col(["erro"])];
+      for (const r of t.rows) endpoints.push({ id: cell(r, i), method: cell(r, m), path: cell(r, c), description: cell(r, d), who: cell(r, q), errors: cell(r, e) });
+    } else if (col(["evento"]) >= 0) {
+      const [i, n, w, f, c] = [col(["id"]), col(["evento"]), col(["quando"]), col(["campos"]), col(["consumido"])];
+      for (const r of t.rows) events.push({ id: cell(r, i), name: cell(r, n), when: cell(r, w), fields: cell(r, f), consumers: cell(r, c) });
+    }
+  }
+  return { endpoints, events };
+}
+
 const askDoubt = (sec: Map<string, string>) => `Vamos resolver a dúvida: ${bullets(sec.get("duvidas em aberto")).find((l) => !isDone(l))?.replace(/^[-*]\s+/, "") ?? ""}`;
 
 function analyzeService(content: string, sec: Map<string, string>): Guide {
@@ -378,7 +400,13 @@ function analyzeService(content: string, sec: Map<string, string>): Guide {
     },
     () => {
       const m: Missing[] = [];
-      if (!has(sec.get("api e contratos"))) m.push({ id: "api", label: "API e contratos", section: "API e contratos", ask: "O que este serviço expõe a outros (endpoints, eventos) e em que formato?" });
+      const api = sec.get("api e contratos");
+      const { endpoints, events } = contractsOf(api);
+      if (endpoints.length + events.length === 0 && !(has(api) && /n[ãa]o (exp[õo]e|h[áa]|possui)|nenhum/i.test(api ?? "")))
+        m.push({ id: "api", label: "API e contratos (tabelas de endpoints ou eventos, ou declarar que não expõe)", section: "API e contratos", ask: "O que este serviço expõe a outros? Para cada endpoint: método, caminho, descrição, quem acessa e erros possíveis. Para cada evento: quando é publicado, campos e quem consome. Proponho montar as tabelas." });
+      const sem = endpoints.filter((e) => !e.method || !e.path || !e.errors);
+      if (sem.length)
+        m.push({ id: "contrato-incompleto", label: `Completar ${sem.length} ${sem.length === 1 ? "endpoint sem" : "endpoints sem"} método, caminho ou erros`, section: "API e contratos", ask: `O endpoint ${sem[0].id || sem[0].path || sem[0].description} está incompleto: falta ${!sem[0].method ? "o método" : !sem[0].path ? "o caminho" : "a lista de erros possíveis"}. Qual é?` });
       if (!has(sec.get("dependencias"))) m.push({ id: "dependencias", label: "Dependências (ou declarar que não há)", section: "Dependências", ask: "De quais outros serviços ou sistemas externos este serviço depende?" });
       if (!has(sec.get("implantacao"))) m.push({ id: "implantacao", label: "Implantação", section: "Implantação", ask: "Como este serviço é empacotado e implantado (contêiner, servidor, variáveis de ambiente)?" });
       const d = doubtsOf(sec);

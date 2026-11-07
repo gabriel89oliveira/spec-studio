@@ -1,5 +1,6 @@
-import { coveredModules, mermaidBlocks } from "./architecture.js";
-import { bullets, keyValues, matrixOf, norm, sectionsOf } from "./guide.js";
+import { coveredModules, entitiesOf, mermaidBlocks, relationsOf } from "./architecture.js";
+import { bullets, contractsOf, keyValues, matrixOf, norm, sectionsOf } from "./guide.js";
+import { storiesOf } from "./views.js";
 import type { Project } from "./project.js";
 
 export type Issue = {
@@ -112,7 +113,7 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
 
   // Arquitetura
   const arch = p.architecture;
-  const archFiles = Object.entries({ "docs/arquitetura/visao.md": arch.docs.visao, "docs/arquitetura/dados-e-integracoes.md": arch.docs.dados, "docs/arquitetura/infraestrutura.md": arch.docs.infra, "docs/arquitetura/execucao.md": arch.docs.exec, "docs/arquitetura/conceitos-transversais.md": arch.docs.transv, "docs/arquitetura/requisitos-nao-funcionais.md": arch.docs.rnf, "docs/arquitetura/riscos-e-divida.md": arch.docs.riscos }).filter(([, c]) => !!c) as [string, string][];
+  const archFiles = Object.entries({ "docs/arquitetura/visao.md": arch.docs.visao, "docs/arquitetura/dados-e-integracoes.md": arch.docs.dados, "docs/arquitetura/infraestrutura.md": arch.docs.infra, "docs/arquitetura/execucao.md": arch.docs.exec, "docs/arquitetura/conceitos-transversais.md": arch.docs.transv, "docs/arquitetura/modelo-de-dados.md": arch.docs.modelo, "docs/arquitetura/requisitos-nao-funcionais.md": arch.docs.rnf, "docs/arquitetura/estrategia-de-testes.md": arch.docs.testes, "docs/arquitetura/riscos-e-divida.md": arch.docs.riscos, ...Object.fromEntries(arch.services.map((x) => [x.path, x.content])) }).filter(([, c]) => !!c) as [string, string][];
   const allModuleIds = new Set([...moduleIds, ...(p.concept?.moduleIds ?? [])]);
   for (const [file, content] of archFiles)
     for (const ref of new Set(content.match(/\bSV\d+\b/gi) ?? [])) {
@@ -138,6 +139,53 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
     for (const sv of arch.services)
       if (!new RegExp(`\\b${sv.id}\\b`, "i").test(ambientes))
         add("servico-fora-do-ambiente", sv.id, "aviso", `${sv.id} não aparece em “Serviços por ambiente”.`, [sv.path, "docs/arquitetura/infraestrutura.md"], `O serviço ${sv.id} não consta em Serviços por ambiente de docs/arquitetura/infraestrutura.md. Pergunte-me onde ele roda em cada ambiente e registre.`);
+  // Contratos
+  const epSeen = new Map<string, string>();
+  for (const sv of arch.services) {
+    const { endpoints, events } = contractsOf(sectionsOf(sv.content).get("api e contratos"));
+    for (const e of [...endpoints, ...events]) {
+      if (!e.id) continue;
+      const other = epSeen.get(e.id.toUpperCase());
+      if (other) add("contrato-id-duplicado", e.id + sv.id, "erro", `O ID de contrato ${e.id} aparece em ${other} e em ${sv.id}.`, [sv.path], `O ID ${e.id} está repetido nos contratos de ${other} e ${sv.id}. Renumere um deles.`);
+      else epSeen.set(e.id.toUpperCase(), sv.id);
+    }
+    if (p.concept?.profiles.length)
+      for (const e of endpoints)
+        for (const who of e.who.split(/[,;/]|\se\s/).map((x) => x.trim()).filter(Boolean))
+          if (!/servi[cç]o|sistema|p[uú]blic|interno|an[oô]nim|qualquer|^SV\d+/i.test(who) && !has(p.concept.profiles, who))
+            add("endpoint-perfil-inexistente", `${e.id || e.path}:${norm(who)}`, "aviso", `${sv.id}: o endpoint ${e.id || e.path} cita o perfil “${who}”, que não está no Conceito.`, [sv.path, "docs/CONCEITO.md"], `O endpoint ${e.id || e.path} de ${sv.path} cita o perfil “${who}”, ausente do Conceito. Pergunte-me se é um perfil novo ou outro nome de um perfil existente.`);
+    for (const ev of events)
+      if (!ev.consumers.trim()) add("evento-sem-consumidor", `${sv.id}:${ev.id || ev.name}`, "aviso", `${sv.id}: o evento ${ev.name || ev.id} não tem consumidor declarado.`, [sv.path], `O evento ${ev.name || ev.id} de ${sv.path} não diz quem o consome. Pergunte-me, ou remova o evento se ninguém o usa.`);
+  }
+
+  // Modelo de dados
+  if (arch.docs.modelo) {
+    const ents = entitiesOf(arch.docs.modelo);
+    const names = new Set(ents.map((e) => norm(e.name)));
+    for (const e of ents)
+      if (!e.owner) add("entidade-sem-dono", norm(e.name), "aviso", `A entidade ${e.name} não tem serviço dono.`, ["docs/arquitetura/modelo-de-dados.md"], `A entidade ${e.name} não declara "- Dono: SVxx". Pergunte-me qual serviço é dono dela e registre.`);
+    for (const r of relationsOf(arch.docs.modelo))
+      for (const end of [r.from, r.to])
+        if (end && !names.has(norm(end))) add("relacao-entidade-inexistente", `${norm(r.from)}>${norm(r.to)}:${norm(end)}`, "aviso", `A relação ${r.from} → ${r.to} cita a entidade “${end}”, que não existe.`, ["docs/arquitetura/modelo-de-dados.md"], `Na tabela Relações de modelo-de-dados.md, “${end}” não é uma entidade listada. Corrija o nome ou crie a entidade.`);
+  }
+
+  // Critérios de aceite com ID rastreável (CA-xx.n.k)
+  for (const f of p.features) {
+    const seen = new Set<string>();
+    for (const st of storiesOf(f.content)) {
+      const base = st.id.replace(/^US-/i, "CA-");
+      const sem = st.criteria.filter((c) => !/^CA-[\w.]+/i.test(c));
+      if (sem.length) add("criterio-sem-id", `${f.id}:${st.id}`, "aviso", `${f.id}/${st.id}: ${sem.length} critério(s) de aceite sem ID (CA-…).`, [f.path], `Em ${f.path}, a história ${st.id} tem critérios sem ID. Prefixe cada um com ${base}.1, ${base}.2… (sem renumerar IDs que já existem) para os testes poderem citá-los.`);
+      for (const c of st.criteria) {
+        const id = c.match(/^CA-[\w.]+/i)?.[0].toUpperCase();
+        if (!id) continue;
+        if (seen.has(id)) add("criterio-id-duplicado", `${f.id}:${id}`, "erro", `${f.id}: o ID ${id} aparece mais de uma vez.`, [f.path], `Em ${f.path}, o ID ${id} está repetido. Renumere o duplicado.`);
+        seen.add(id);
+        if (!id.startsWith(`${base}.`.toUpperCase())) add("criterio-id-fora-da-historia", `${f.id}:${id}`, "aviso", `${f.id}: ${id} está na história ${st.id}, mas o ID não começa com ${base}.`, [f.path], `Em ${f.path}, o critério ${id} está sob ${st.id}. Ajuste o ID para ${base}.n.`);
+      }
+    }
+  }
+
   for (const [m, svs] of owners)
     if (svs.length > 1) add("modulo-em-varios-servicos", m, "aviso", `O módulo ${m} é coberto por mais de um serviço (${svs.join(", ")}).`, svs.map((id) => arch.services.find((x) => x.id === id)!.path), `O módulo ${m} aparece em ${svs.join(" e ")}. Pergunte-me qual serviço é o dono e ajuste Módulos que cobre.`);
   if (arch.services.length)
