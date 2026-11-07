@@ -33,7 +33,7 @@ const tmp = () => {
 const SERVICE = (id = "SV01", mods = "- M01", stack = "- Linguagem: PHP\n- Framework: Laravel") =>
   `# ${id} — API\n\n## Responsabilidade\nRegras de negócio.\n\n## Módulos que cobre\n${mods}\n\n## Stack\n${stack}\n\n## Dados próprios\nPostgres.\n`;
 const VISAO = (diagram = "SV01") =>
-  `# Visão\n\n## Contexto e restrições\n100 usuários.\n\n## Estilo de arquitetura\nMonólito modular.\n\n## Componentes\n\`\`\`mermaid\ngraph TD\n  ${diagram}[API]\n\`\`\`\n`;
+  `# Visão\n\n## Contexto e restrições\n100 usuários.\n\n## Estilo de arquitetura\nMonólito modular.\n\n## Contexto do sistema\n\`\`\`mermaid\ngraph LR\n  U[Gestor] --> S[Sistema]\n\`\`\`\n\n## Componentes\n\`\`\`mermaid\ngraph TD\n  ${diagram}[API]\n\`\`\`\n`;
 
 function project() {
   const dir = tmp();
@@ -55,7 +55,7 @@ describe("guia de serviço", () => {
 });
 
 describe("guia de arquitetura", () => {
-  const base = { visao: null, dados: null, infra: null, rnf: null, services: [], moduleIds: ["M01"] };
+  const base = { visao: null, dados: null, infra: null, exec: null, transv: null, rnf: null, riscos: null, services: [], moduleIds: ["M01"] };
   it("começa pelo contexto e traz arquivo e seção em cada pendência", () => {
     const g = analyzeArchitecture(base);
     expect(g).toMatchObject({ kind: "architecture", reached: 0, current: "Contexto" });
@@ -66,6 +66,26 @@ describe("guia de arquitetura", () => {
     const g = analyzeArchitecture({ ...base, visao: VISAO(), services: [svc], moduleIds: ["M01", "M02"] });
     expect(g.current).toBe("Serviços");
     expect(g.missing.map((m) => m.id)).toEqual(["stack:SV01", "mapa"]);
+  });
+  it("pede diagrama de contexto antes de seguir", () => {
+    const g = analyzeArchitecture({ ...base, visao: "# V\n\n## Contexto e restrições\nX.\n\n## Estilo de arquitetura\nY.\n" });
+    expect(g.missing.map((m) => m.id)).toEqual(["contexto-diagrama"]);
+  });
+  it("percorre comportamento, qualidade e riscos", () => {
+    const svc = { id: "SV01", path: "docs/arquitetura/servicos/SV01-api.md", content: SERVICE() };
+    const ok = {
+      ...base,
+      visao: VISAO(),
+      services: [svc],
+      dados: "# D\n\n## Dados\nX.\n\n## Integrações\nNenhuma.\n",
+      infra: "# I\n\n## Ambientes\nA.\n\n## Hospedagem\nB.\n\n## Implantação\nC.\n\n## Serviços por ambiente\n| SV01 | prod |\n",
+    };
+    expect(analyzeArchitecture(ok)).toMatchObject({ current: "Comportamento" });
+    const beh = { ...ok, exec: "# E\n\n## Cenários\n### Abrir ordem\npassos\n", transv: "# T\n\n## Segurança e acesso\nLogin.\n\n## Registro e tratamento de erros\nLogs.\n" };
+    expect(analyzeArchitecture(beh)).toMatchObject({ current: "Qualidade" });
+    const rnf = "## Requisitos\n\n| ID | Categoria | Meta | Como medir | Atendido por |\n|---|---|---|---|---|\n| RNF-01 | Desempenho | 2 s | carga | SV01 |\n";
+    expect(analyzeArchitecture({ ...beh, rnf })).toMatchObject({ current: "Riscos" });
+    expect(analyzeArchitecture({ ...beh, rnf, riscos: "# R\n\n## Riscos\n- Prazo curto.\n" })).toMatchObject({ current: null, reached: 7 });
   });
   it("lê requisitos não funcionais", () => {
     const r = rnfsOf("## Requisitos\n\n| ID | Categoria | Meta | Como medir | Atendido por |\n|---|---|---|---|---|\n| RNF-01 | Desempenho | < 2 s | teste de carga | SV01 |\n");

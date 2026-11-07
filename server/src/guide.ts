@@ -41,7 +41,7 @@ export const SOURCE_STEPS = ["Importada", "Revisada", "Aplicada"];
 export const CONCEPT_STEPS = ["Visão", "Escopo", "Requisitos"];
 export const MATRIX_STEPS = ["Perfis", "Ações", "Preenchida"];
 export const SERVICE_STEPS = ["Ideia", "Definido", "Detalhado"];
-export const ARCH_STEPS = ["Contexto", "Serviços", "Dados e integrações", "Infraestrutura", "Qualidade"];
+export const ARCH_STEPS = ["Contexto", "Serviços", "Dados e integrações", "Infraestrutura", "Comportamento", "Qualidade", "Riscos"];
 
 const LATER_STATUS = ["em desenvolvimento", "concluida", "cancelada"];
 
@@ -60,7 +60,7 @@ export function kindOfPath(rel: string): DocKind | null {
   if (/^docs\/CONCEITO\.md$/i.test(rel)) return "concept";
   if (/^docs\/permissoes\.md$/i.test(rel)) return "matrix";
   if (/^docs\/arquitetura\/servicos\/[^/]+\.md$/i.test(rel)) return "service";
-  if (/^docs\/arquitetura\/(visao|dados-e-integracoes|infraestrutura|requisitos-nao-funcionais)\.md$/i.test(rel)) return "architecture";
+  if (/^docs\/arquitetura\/(visao|dados-e-integracoes|infraestrutura|execucao|conceitos-transversais|requisitos-nao-funcionais|riscos-e-divida)\.md$/i.test(rel)) return "architecture";
   return null;
 }
 

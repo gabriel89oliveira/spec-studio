@@ -65,7 +65,7 @@ export function overview(p: Project, issues: Issue[]): Overview {
   const coveredSet = new Set([...covered.values()].flat());
   const moduleIds = [...new Set([...p.modules.map((m) => m.id), ...(p.concept?.moduleIds ?? [])])];
   const arch = p.architecture;
-  const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.infra].some((c) => !!c && sectionsOfHasContent(c));
+  const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.infra, arch.docs.exec, arch.docs.transv, arch.docs.riscos].some((c) => !!c && sectionsOfHasContent(c));
   if (started && arch.guide.current && arch.guide.missing[0]) next.push({ text: `Arquitetura: ${arch.guide.missing[0].label}`, path: arch.guide.missing[0].file ?? "docs/arquitetura/visao.md" });
   const conceptSec = p.concept ? sectionsOf(p.concept.content) : new Map<string, string>();
   return {

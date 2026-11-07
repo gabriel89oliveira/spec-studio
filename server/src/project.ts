@@ -36,7 +36,7 @@ export type Architecture = {
   /** A pasta docs/arquitetura existe (a entrevista de arquitetura já foi iniciada ou o kit trouxe os modelos). */
   exists: boolean;
   /** Conteúdo dos quatro documentos do projeto; nulo se o arquivo não existe. */
-  docs: { visao: string | null; dados: string | null; infra: string | null; rnf: string | null };
+  docs: { visao: string | null; dados: string | null; infra: string | null; exec: string | null; transv: string | null; rnf: string | null; riscos: string | null };
   services: Doc[];
   rnfs: Rnf[];
   guide: Guide;
@@ -177,7 +177,7 @@ export function loadProject(root: string): Project {
   const decRaw = read(root, "docs/decisoes.md");
 
   const services = listMd(root, `${ARCH_DIR}/servicos`).map((p) => docOf(root, p, /^SV\d+/i)).filter((d): d is Doc => !!d);
-  const docs = { visao: read(root, ARCH_PATHS.visao), dados: read(root, ARCH_PATHS.dados), infra: read(root, ARCH_PATHS.infra), rnf: read(root, ARCH_PATHS.rnf) };
+  const docs = { visao: read(root, ARCH_PATHS.visao), dados: read(root, ARCH_PATHS.dados), infra: read(root, ARCH_PATHS.infra), exec: read(root, ARCH_PATHS.exec), transv: read(root, ARCH_PATHS.transv), rnf: read(root, ARCH_PATHS.rnf), riscos: read(root, ARCH_PATHS.riscos) };
   const moduleIds = [...new Set([...modules.map((m) => m.id), ...(concept?.moduleIds ?? [])])].sort();
   const architecture: Architecture = {
     exists: fs.existsSync(path.join(root, ...ARCH_DIR.split("/"))),

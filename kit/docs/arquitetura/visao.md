@@ -4,4 +4,6 @@
 
 ## Estilo de arquitetura
 
+## Contexto do sistema
+
 ## Componentes

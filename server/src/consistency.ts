@@ -112,7 +112,7 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
 
   // Arquitetura
   const arch = p.architecture;
-  const archFiles = Object.entries({ "docs/arquitetura/visao.md": arch.docs.visao, "docs/arquitetura/dados-e-integracoes.md": arch.docs.dados, "docs/arquitetura/infraestrutura.md": arch.docs.infra, "docs/arquitetura/requisitos-nao-funcionais.md": arch.docs.rnf }).filter(([, c]) => !!c) as [string, string][];
+  const archFiles = Object.entries({ "docs/arquitetura/visao.md": arch.docs.visao, "docs/arquitetura/dados-e-integracoes.md": arch.docs.dados, "docs/arquitetura/infraestrutura.md": arch.docs.infra, "docs/arquitetura/execucao.md": arch.docs.exec, "docs/arquitetura/conceitos-transversais.md": arch.docs.transv, "docs/arquitetura/requisitos-nao-funcionais.md": arch.docs.rnf, "docs/arquitetura/riscos-e-divida.md": arch.docs.riscos }).filter(([, c]) => !!c) as [string, string][];
   const allModuleIds = new Set([...moduleIds, ...(p.concept?.moduleIds ?? [])]);
   for (const [file, content] of archFiles)
     for (const ref of new Set(content.match(/\bSV\d+\b/gi) ?? [])) {
@@ -129,9 +129,15 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
     const stack = keyValues(sectionsOf(sv.content).get("stack") ?? "");
     if (!stack.get("linguagem") || !stack.get("framework"))
       add("servico-sem-stack", sv.id, "aviso", `${sv.id} (“${sv.name}”) ainda não tem a stack definida.`, [sv.path], `O serviço ${sv.path} não declara linguagem e framework em Stack. Pergunte-me qual stack usar e registre.`);
-    if (arch.docs.visao && mermaidBlocks(arch.docs.visao).length && !mermaidBlocks(arch.docs.visao).some((b) => new RegExp(`\\b${sv.id}\\b`, "i").test(b)))
+    const comp = mermaidBlocks(sectionsOf(arch.docs.visao ?? "").get("componentes") ?? "");
+    if (comp.length && !comp.some((b) => new RegExp(`\\b${sv.id}\\b`, "i").test(b)))
       add("servico-fora-do-diagrama", sv.id, "aviso", `${sv.id} não aparece no diagrama de componentes.`, [sv.path, "docs/arquitetura/visao.md"], `O serviço ${sv.id} não consta no diagrama Mermaid de docs/arquitetura/visao.md. Inclua-o no diagrama.`);
   }
+  const ambientes = arch.docs.infra ? sectionsOf(arch.docs.infra).get("servicos por ambiente") : undefined;
+  if (ambientes?.trim())
+    for (const sv of arch.services)
+      if (!new RegExp(`\\b${sv.id}\\b`, "i").test(ambientes))
+        add("servico-fora-do-ambiente", sv.id, "aviso", `${sv.id} não aparece em “Serviços por ambiente”.`, [sv.path, "docs/arquitetura/infraestrutura.md"], `O serviço ${sv.id} não consta em Serviços por ambiente de docs/arquitetura/infraestrutura.md. Pergunte-me onde ele roda em cada ambiente e registre.`);
   for (const [m, svs] of owners)
     if (svs.length > 1) add("modulo-em-varios-servicos", m, "aviso", `O módulo ${m} é coberto por mais de um serviço (${svs.join(", ")}).`, svs.map((id) => arch.services.find((x) => x.id === id)!.path), `O módulo ${m} aparece em ${svs.join(" e ")}. Pergunte-me qual serviço é o dono e ajuste Módulos que cobre.`);
   if (arch.services.length)

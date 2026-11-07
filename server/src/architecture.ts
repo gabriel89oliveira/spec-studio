@@ -1,4 +1,4 @@
-import { ARCH_STEPS, doubtsOf, has, keyValues, norm, sectionsOf, tableOf, type Guide, type Missing } from "./guide.js";
+import { ARCH_STEPS, bullets, doubtsOf, has, keyValues, norm, sectionsOf, tableOf, type Guide, type Missing } from "./guide.js";
 
 /**
  * Arquitetura do projeto: docs/arquitetura/ (visão, dados e integrações, infraestrutura, requisitos
@@ -11,14 +11,20 @@ export const ARCH_PATHS = {
   visao: `${ARCH_DIR}/visao.md`,
   dados: `${ARCH_DIR}/dados-e-integracoes.md`,
   infra: `${ARCH_DIR}/infraestrutura.md`,
+  exec: `${ARCH_DIR}/execucao.md`,
+  transv: `${ARCH_DIR}/conceitos-transversais.md`,
   rnf: `${ARCH_DIR}/requisitos-nao-funcionais.md`,
+  riscos: `${ARCH_DIR}/riscos-e-divida.md`,
 } as const;
 
 export type ArchInput = {
   visao: string | null;
   dados: string | null;
   infra: string | null;
+  exec: string | null;
+  transv: string | null;
   rnf: string | null;
+  riscos: string | null;
   services: { id: string; path: string; content: string }[];
   /** IDs dos módulos do projeto (arquivos e mapa do Conceito). */
   moduleIds: string[];
@@ -69,6 +75,14 @@ export function analyzeArchitecture(a: ArchInput): Guide {
             section: "Estilo de arquitetura",
             ask: "Com base no contexto, proponho um estilo: um sistema só organizado em módulos (monólito modular) ou serviços separados. Qual faz sentido e por quê?",
           });
+        if (!MERMAID.test(visao("contexto do sistema") ?? ""))
+          m.push({
+            id: "contexto-diagrama",
+            label: "Diagrama de contexto",
+            file: ARCH_PATHS.visao,
+            section: "Contexto do sistema",
+            ask: "Vou desenhar o diagrama de contexto (Mermaid): o sistema no centro, quem o usa (perfis) e os sistemas externos com que conversa. Posso desenhar?",
+          });
         return m;
       },
     },
@@ -110,6 +124,21 @@ export function analyzeArchitecture(a: ArchInput): Guide {
           m.push({ id: "hospedagem", label: "Hospedagem", file: ARCH_PATHS.infra, section: "Hospedagem", ask: "Onde a plataforma roda (nuvem, servidor próprio, contêineres)? Há restrição de provedor ou de região?" });
         if (!has(sec(a.infra, "implantacao")))
           m.push({ id: "implantacao", label: "Implantação (CI/CD)", file: ARCH_PATHS.infra, section: "Implantação", ask: "Como o código chega à produção: quem aprova, que testes rodam, como voltar atrás se algo der errado?" });
+        if (a.services.length > 0 && !has(sec(a.infra, "servicos por ambiente")))
+          m.push({ id: "mapa-ambientes", label: "Serviços por ambiente", file: ARCH_PATHS.infra, section: "Serviços por ambiente", ask: "Onde cada serviço roda em cada ambiente (servidor, contêiner, função, banco compartilhado)? Posso propor uma tabela serviço × ambiente." });
+        return m;
+      },
+    },
+    {
+      check: () => {
+        const m: Missing[] = [];
+        const cenarios = sec(a.exec, "cenarios");
+        if (!cenarios || (cenarios.match(/^###\s/gm) ?? []).length + bullets(cenarios).length === 0)
+          m.push({ id: "cenarios", label: "Cenários de execução (ao menos um fluxo principal)", file: ARCH_PATHS.exec, section: "Cenários", ask: "Qual é o fluxo mais importante do sistema (ex.: abrir uma ordem de serviço)? Proponho descrevê-lo passo a passo entre usuário, serviços e sistemas externos, com um diagrama de sequência." });
+        if (!has(sec(a.transv, "seguranca e acesso")))
+          m.push({ id: "seguranca", label: "Segurança e acesso", file: ARCH_PATHS.transv, section: "Segurança e acesso", ask: "Como as pessoas se autenticam e como a permissão é verificada (login próprio, SSO, token entre serviços)? Há dados pessoais a proteger (LGPD)?" });
+        if (!has(sec(a.transv, "registro e tratamento de erros")))
+          m.push({ id: "erros", label: "Registro e tratamento de erros", file: ARCH_PATHS.transv, section: "Registro e tratamento de erros", ask: "Como o sistema registra o que acontece (logs, auditoria) e o que faz quando algo falha (nova tentativa, mensagem ao usuário, alerta)?" });
         return m;
       },
     },
@@ -127,6 +156,14 @@ export function analyzeArchitecture(a: ArchInput): Guide {
         return m;
       },
     },
+    {
+      check: () => {
+        const m: Missing[] = [];
+        if (!has(sec(a.riscos, "riscos")))
+          m.push({ id: "riscos", label: "Riscos e dívida técnica (ou declarar que não há)", file: ARCH_PATHS.riscos, section: "Riscos", ask: "Quais são os maiores riscos técnicos (prazo, equipe, tecnologia nova, dependência de terceiro) e o que fazer para reduzi-los? Se nenhum, digo que não há." });
+        return m;
+      },
+    },
   ];
   let reached = 0;
   let missing: Missing[] = [];
@@ -135,7 +172,7 @@ export function analyzeArchitecture(a: ArchInput): Guide {
     if (missing.length) break;
     reached++;
   }
-  const doubts = [a.visao, a.dados, a.infra, a.rnf, ...a.services.map((s) => s.content)].reduce<number>((n, c) => n + (c ? doubtsOf(sectionsOf(c)) : 0), 0);
+  const doubts = [a.visao, a.dados, a.infra, a.exec, a.transv, a.rnf, a.riscos, ...a.services.map((s) => s.content)].reduce<number>((n, c) => n + (c ? doubtsOf(sectionsOf(c)) : 0), 0);
   return { kind: "architecture", steps: ARCH_STEPS, reached, current: reached < ARCH_STEPS.length ? ARCH_STEPS[reached] : null, missing, doubts };
 }
 
