@@ -3,7 +3,9 @@ import path from "node:path";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { QueryFn } from "./claude.js";
 import { analyzeDoc, norm, sectionsOf, type Guide, type Missing } from "./guide.js";
+import { ARCH_PATHS } from "./architecture.js";
 import { checkAgentPath } from "./paths.js";
+import { loadProject } from "./project.js";
 import { randomId } from "./util.js";
 
 /**
@@ -44,7 +46,7 @@ function stamp(): string {
 type Plan =
   | { kind: "create"; rel: string; content: string; template: string; summary: string }
   | { kind: "edit"; rel: string; summary: string }
-  | { kind: "interview"; rel: string; content?: string; summary: string }
+  | { kind: "interview"; rel: string; content?: string; summary: string; arch?: boolean }
   | { kind: "answer"; summary: string };
 
 /** Sessões de entrevista: o arquivo que cada uma conduz. */
@@ -238,6 +240,26 @@ function plan(root: string, prompt: string, resume?: string): Plan {
     return { kind: "answer", summary: "**Lacunas (simulado)**: 1) nenhum perfil tem permissão de cancelar ordens; 2) o módulo M01 não tem feature de aprovação; 3) LGPD não aparece nos requisitos gerais. Nada foi alterado." };
   }
 
+  // Entrevista de arquitetura: o guia vem do projeto inteiro e cada pendência diz em que arquivo e seção gravar.
+  if (/^Entrevista de arquitetura\b/m.test(prompt)) {
+    const item = loadProject(root).architecture.guide.missing[0];
+    return { kind: "interview", rel: item?.file ?? ARCH_PATHS.visao, arch: true, summary: item ? `primeira pergunta: **${item.ask}**` : "a arquitetura já está completa" };
+  }
+  if (interviews.get(resume ?? "") === "@arch") {
+    const answer = prompt.replace(/^Arquivo aberto na tela: .*\n\n/, "").trim();
+    const g0 = loadProject(root).architecture.guide;
+    const item = g0.missing[0];
+    if (!item || !answer) return { kind: "answer", summary: "a arquitetura já está completa" };
+    const abs = item.file ? checkAgentPath(root, item.file) : null;
+    if (!item.file || !item.section || !abs?.ok || !fs.existsSync(abs.abs))
+      return { kind: "answer", summary: `anotei sua resposta, mas no modo simulado não crio arquivos novos (${item.label}). Siga com o Claude real para criar o serviço` };
+    const content = appendToSection(fs.readFileSync(abs.abs, "utf8"), item.section, answer);
+    fs.writeFileSync(abs.abs, content, "utf8");
+    const g1 = loadProject(root).architecture.guide;
+    const closed = g1.reached > g0.reached ? `etapa **${g0.steps[g0.reached]}** completa. ` : "";
+    return { kind: "answer", summary: `anotei a resposta em \`${item.file}\`. ${closed}${g1.missing[0] ? `Próxima pergunta: **${g1.missing[0].ask}**` : "Todas as etapas estão completas."}` };
+  }
+
   // Entrevista guiada: o Claude pergunta; a resposta seguinte do usuário é gravada no arquivo.
   const start = prompt.match(/^Entrevista guiada: etapa "[^"]+" de (\S+?)\.?$/m) ?? prompt.match(/^Abertura do projeto: (\S+?)\.?$/m);
   if (start) {
@@ -310,7 +332,7 @@ export const mockQuery: QueryFn = async function* ({ prompt, options }) {
   }
 
   const p = plan(root, prompt, options.resume);
-  if (p.kind === "create" || (p.kind === "interview" && p.content === undefined)) interviews.set(sid, p.rel);
+  if (p.kind === "create" || (p.kind === "interview" && p.content === undefined)) interviews.set(sid, p.kind === "interview" && p.arch ? "@arch" : p.rel);
   if (p.kind === "create") {
     yield tool("Read", p.template);
     await sleep(400);

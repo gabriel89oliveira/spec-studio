@@ -10,9 +10,9 @@ export type TreeNode = {
   features?: TreeNode[];
 };
 
-export type GuideMissing = { id: string; label: string; ask: string; section?: string; action?: "extract" | "review" | "apply" };
+export type GuideMissing = { id: string; label: string; ask: string; section?: string; file?: string; action?: "extract" | "review" | "apply" };
 export type Guide = {
-  kind: "feature" | "module" | "source" | "concept" | "matrix";
+  kind: "feature" | "module" | "source" | "concept" | "matrix" | "service" | "architecture";
   steps: string[];
   reached: number;
   current: string | null;
@@ -135,6 +135,13 @@ export type Overview = {
   modules: { id: string; name: string; path: string; guide: Progress | null; features: FeatureLine[] }[];
   orphans: FeatureLine[];
   decisions: Decision[];
+  architecture: {
+    started: boolean;
+    guide: Progress & { missing: { label: string }[] };
+    services: { id: string; name: string; path: string; modules: string[]; guide: Progress | null }[];
+    uncovered: string[];
+    warnings: string[];
+  };
   next: { text: string; path?: string }[];
 };
 export type DevPack = { title: string; markdown: string; warnings: string[]; testPlan: string };

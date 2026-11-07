@@ -43,10 +43,53 @@ export function Sheet({ children, wide, flush }: { children: React.ReactNode; wi
 const taskBtn =
   "ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded align-middle text-ink-3 hover:bg-wash hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40";
 
+let mermaidReady: Promise<typeof import("mermaid").default> | null = null;
+const loadMermaid = () =>
+  (mermaidReady ??= import("mermaid").then((m) => {
+    m.default.initialize({ startOnLoad: false, securityLevel: "strict", theme: "neutral" });
+    return m.default;
+  }));
+let mermaidSeq = 0;
+
+/** Desenha um bloco ```mermaid; se o texto não for válido, mostra o código como está. */
+function MermaidBlock({ code }: { code: string }) {
+  const [svg, setSvg] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setFailed(false);
+    loadMermaid()
+      .then((m) => m.render(`mmd-${++mermaidSeq}`, code))
+      .then(
+        (r) => alive && setSvg(r.svg),
+        () => alive && (setSvg(null), setFailed(true)),
+      );
+    return () => {
+      alive = false;
+    };
+  }, [code]);
+  if (failed || svg === null)
+    return (
+      <pre data-testid="mermaid-fallback">
+        <code>{code}</code>
+      </pre>
+    );
+  return <div className="my-4 overflow-x-auto" data-testid="mermaid" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
 const Markdown = memo(function Markdown({ content, onTask }: { content: string; onTask?: (line: number, action: TaskAction) => void }) {
   const components = useMemo(() => {
-    if (!onTask) return undefined;
+    const pre = ({ children }: { children?: React.ReactNode }) => {
+      const el = Children.toArray(children)[0];
+      if (isValidElement(el)) {
+        const props = el.props as { className?: string; children?: React.ReactNode };
+        if (/language-mermaid/.test(props.className ?? "")) return <MermaidBlock code={String(props.children ?? "").replace(/\n$/, "")} />;
+      }
+      return <pre>{children}</pre>;
+    };
+    if (!onTask) return { pre };
     return {
+      pre,
       li({ node, children, className }: { node?: { position?: { start: { line: number } } }; children?: React.ReactNode; className?: string }) {
         const line = node?.position?.start.line;
         const kids = Children.toArray(children);

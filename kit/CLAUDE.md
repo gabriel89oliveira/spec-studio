@@ -17,11 +17,12 @@ Este projeto segue desenvolvimento guiado por especificação. A documentação 
 | `docs/decisoes.md` | Decisões abertas e tomadas | Antes de implementar e sempre que algo estiver ambíguo |
 | `docs/fontes/Sxx-*.md` | Ficha de cada fonte de contexto (reunião, documento, norma) com as propostas extraídas | Ao extrair ou aplicar uma fonte; para saber a origem de um requisito |
 | `docs/fontes/originais/` | Arquivos originais das fontes (PDF, texto, transcrição) | Só ao extrair a fonte |
-| `docs/_templates/` | Esqueleto inicial de módulo e de feature | Só ao criar um módulo ou feature novo |
+| `docs/arquitetura/` | Visão, serviços (`servicos/SVxx-*.md`), dados e integrações, infraestrutura, requisitos não funcionais | Antes de decisões técnicas; regras e entrevista em `docs/arquitetura/README.md` |
+| `docs/_templates/` | Esqueleto inicial de módulo, feature e serviço | Só ao criar um módulo, feature ou serviço novo |
 
 ## IDs
 
-- `M01` módulo · `F01` feature · `US-01.1` história · `RN-01.1` regra de negócio · `D-001` decisão.
+- `M01` módulo · `F01` feature · `US-01.1` história · `RN-01.1` regra de negócio · `D-001` decisão · `SV01` serviço · `RNF-01` requisito não funcional.
 - IDs nunca são renumerados nem reaproveitados. Para criar um novo, use o próximo número livre.
 - Cite os IDs em nomes de testes, mensagens de commit e descrições de PR.
 

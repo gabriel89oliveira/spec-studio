@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { analyzeArchitecture, ARCH_DIR, ARCH_PATHS, rnfsOf, type Rnf } from "./architecture.js";
 import { analyzeDoc, matrixOf, norm, sectionsOf, tableOf, type Guide } from "./guide.js";
 import { toPosix } from "./paths.js";
 
@@ -31,6 +32,15 @@ export type Decision = {
   decidedBy: string;
   history: string[];
 };
+export type Architecture = {
+  /** A pasta docs/arquitetura existe (a entrevista de arquitetura já foi iniciada ou o kit trouxe os modelos). */
+  exists: boolean;
+  /** Conteúdo dos quatro documentos do projeto; nulo se o arquivo não existe. */
+  docs: { visao: string | null; dados: string | null; infra: string | null; rnf: string | null };
+  services: Doc[];
+  rnfs: Rnf[];
+  guide: Guide;
+};
 export type Project = {
   root: string;
   concept: { content: string; guide: Guide | null; profiles: string[]; moduleIds: string[] } | null;
@@ -39,6 +49,7 @@ export type Project = {
   features: Feature[];
   sources: Doc[];
   decisions: Decision[];
+  architecture: Architecture;
 };
 
 const lines = (s: string | undefined) => (s ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -75,7 +86,7 @@ function docOf(root: string, rel: string, idRe: RegExp): Doc | null {
   const base = rel.split("/").pop()!.replace(/\.md$/i, "");
   const id = (base.match(idRe)?.[0] ?? base).toUpperCase();
   const h1 = content.match(/^#\s+(.+)$/m)?.[1] ?? base;
-  const name = h1.replace(/^[A-Z]\d+\s*[—-]\s*/i, "").trim() || base;
+  const name = h1.replace(/^[A-Z]+\d+\s*[—-]\s*/i, "").trim() || base;
   return { id, name, path: rel, content, guide: analyzeDoc(rel, content) };
 }
 
@@ -111,7 +122,7 @@ export function parseDecisions(content: string): Decision[] {
       id: h.id,
       title: h.title,
       status: f("Status") || "Aberta",
-      affects: (f("Afeta").match(/\b[MFS]\d+\b/gi) ?? []).map((x) => x.toUpperCase()),
+      affects: (f("Afeta").match(/\b(?:SV|[MFS])\d+\b/gi) ?? []).map((x) => x.toUpperCase()),
       decider: f("Quem decide"),
       deadline: iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : br ? `${br[3]}-${br[2]}-${br[1]}` : null,
       context: block("Contexto"),
@@ -164,7 +175,18 @@ export function loadProject(root: string): Project {
     });
 
   const decRaw = read(root, "docs/decisoes.md");
-  return { root, concept, matrix, modules, features, sources, decisions: decRaw ? parseDecisions(decRaw) : [] };
+
+  const services = listMd(root, `${ARCH_DIR}/servicos`).map((p) => docOf(root, p, /^SV\d+/i)).filter((d): d is Doc => !!d);
+  const docs = { visao: read(root, ARCH_PATHS.visao), dados: read(root, ARCH_PATHS.dados), infra: read(root, ARCH_PATHS.infra), rnf: read(root, ARCH_PATHS.rnf) };
+  const moduleIds = [...new Set([...modules.map((m) => m.id), ...(concept?.moduleIds ?? [])])].sort();
+  const architecture: Architecture = {
+    exists: fs.existsSync(path.join(root, ...ARCH_DIR.split("/"))),
+    docs,
+    services,
+    rnfs: rnfsOf(docs.rnf),
+    guide: analyzeArchitecture({ ...docs, services: services.map((x) => ({ id: x.id, path: x.path, content: x.content })), moduleIds }),
+  };
+  return { root, concept, matrix, modules, features, sources, decisions: decRaw ? parseDecisions(decRaw) : [], architecture };
 }
 
 export const relPath = (root: string, abs: string) => toPosix(path.relative(root, abs));

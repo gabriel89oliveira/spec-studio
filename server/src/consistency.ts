@@ -1,4 +1,5 @@
-import { norm, matrixOf } from "./guide.js";
+import { coveredModules, mermaidBlocks } from "./architecture.js";
+import { bullets, keyValues, matrixOf, norm, sectionsOf } from "./guide.js";
 import type { Project } from "./project.js";
 
 export type Issue = {
@@ -25,7 +26,7 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
   const featureIds = new Set(p.features.map((f) => f.id));
 
   // IDs duplicados
-  for (const [label, list] of [["módulo", p.modules], ["feature", p.features]] as const) {
+  for (const [label, list] of [["módulo", p.modules], ["feature", p.features], ["serviço", p.architecture.services]] as const) {
     const seen = new Map<string, string>();
     for (const d of list) {
       const other = seen.get(d.id);
@@ -84,7 +85,8 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
   }
 
   // Decisões
-  const allIds = new Set([...moduleIds, ...featureIds, ...p.sources.map((s) => s.id)]);
+  const serviceIds = new Set(p.architecture.services.map((x) => x.id));
+  const allIds = new Set([...moduleIds, ...featureIds, ...serviceIds, ...p.sources.map((s) => s.id)]);
   for (const d of p.decisions) {
     const open = /aberta|discuss/i.test(d.status);
     for (const ref of d.affects)
@@ -107,6 +109,47 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
     if (g && g.current && g.missing.length)
       add("fonte-pendente", s.id, "aviso", `A fonte ${s.id} (“${s.name}”) ainda não foi ${g.current === "Revisada" ? "revisada" : "aplicada"}.`, [s.path], `A fonte ${s.path} está na etapa ${g.current}. ${g.missing[0]?.ask ?? ""}`.trim());
   }
+
+  // Arquitetura
+  const arch = p.architecture;
+  const archFiles = Object.entries({ "docs/arquitetura/visao.md": arch.docs.visao, "docs/arquitetura/dados-e-integracoes.md": arch.docs.dados, "docs/arquitetura/infraestrutura.md": arch.docs.infra, "docs/arquitetura/requisitos-nao-funcionais.md": arch.docs.rnf }).filter(([, c]) => !!c) as [string, string][];
+  const allModuleIds = new Set([...moduleIds, ...(p.concept?.moduleIds ?? [])]);
+  for (const [file, content] of archFiles)
+    for (const ref of new Set(content.match(/\bSV\d+\b/gi) ?? [])) {
+      const id = ref.toUpperCase();
+      if (!serviceIds.has(id)) add("servico-inexistente", `${file}:${id}`, "erro", `${file.split("/").pop()} cita o serviço ${id}, que não existe.`, [file], `O arquivo ${file} cita o serviço ${id}, mas não há arquivo dele em docs/arquitetura/servicos. Crie o serviço ou corrija a referência, conforme eu decidir.`);
+    }
+  const owners = new Map<string, string[]>();
+  for (const sv of arch.services) {
+    const mods = coveredModules(sv.content);
+    for (const m of mods) {
+      owners.set(m, [...(owners.get(m) ?? []), sv.id]);
+      if (!allModuleIds.has(m)) add("servico-modulo-inexistente", `${sv.id}:${m}`, "erro", `${sv.id} cobre o módulo ${m}, que não existe.`, [sv.path], `O serviço ${sv.path} cobre o módulo ${m}, que não existe. Corrija Módulos que cobre ou crie o módulo, conforme eu decidir.`);
+    }
+    const stack = keyValues(sectionsOf(sv.content).get("stack") ?? "");
+    if (!stack.get("linguagem") || !stack.get("framework"))
+      add("servico-sem-stack", sv.id, "aviso", `${sv.id} (“${sv.name}”) ainda não tem a stack definida.`, [sv.path], `O serviço ${sv.path} não declara linguagem e framework em Stack. Pergunte-me qual stack usar e registre.`);
+    if (arch.docs.visao && mermaidBlocks(arch.docs.visao).length && !mermaidBlocks(arch.docs.visao).some((b) => new RegExp(`\\b${sv.id}\\b`, "i").test(b)))
+      add("servico-fora-do-diagrama", sv.id, "aviso", `${sv.id} não aparece no diagrama de componentes.`, [sv.path, "docs/arquitetura/visao.md"], `O serviço ${sv.id} não consta no diagrama Mermaid de docs/arquitetura/visao.md. Inclua-o no diagrama.`);
+  }
+  for (const [m, svs] of owners)
+    if (svs.length > 1) add("modulo-em-varios-servicos", m, "aviso", `O módulo ${m} é coberto por mais de um serviço (${svs.join(", ")}).`, svs.map((id) => arch.services.find((x) => x.id === id)!.path), `O módulo ${m} aparece em ${svs.join(" e ")}. Pergunte-me qual serviço é o dono e ajuste Módulos que cobre.`);
+  if (arch.services.length)
+    for (const m of allModuleIds)
+      if (!owners.has(m)) add("modulo-sem-servico", m, "aviso", `O módulo ${m} não é coberto por nenhum serviço.`, ["docs/arquitetura"], `O módulo ${m} não está em Módulos que cobre de nenhum serviço. Pergunte-me em qual serviço ele fica (ou se precisa de um novo) e registre.`);
+  for (const r of arch.rnfs)
+    if (!r.goal.trim() || !r.measure.trim())
+      add("rnf-incompleto", r.id, "aviso", `${r.id} está sem ${!r.goal.trim() ? "meta" : "forma de medir"}.`, ["docs/arquitetura/requisitos-nao-funcionais.md"], `O requisito ${r.id} está incompleto. Pergunte-me a meta e como medir e preencha a tabela.`);
+  if (arch.docs.dados)
+    for (const m of p.modules) {
+      const ext = bullets(sectionsOf(m.content).get("integracoes externas") ?? "");
+      const drawn = norm(sectionsOf(arch.docs.dados).get("integracoes") ?? "");
+      for (const item of ext) {
+        const name = item.replace(/^[-*]\s+/, "").split(/[:—]|\s-\s/)[0].trim();
+        if (name && !drawn.includes(norm(name)))
+          add("integracao-nao-desenhada", `${m.id}:${norm(name)}`, "aviso", `${m.id} usa a integração “${name}”, que não está em dados-e-integracoes.md.`, [m.path, "docs/arquitetura/dados-e-integracoes.md"], `O módulo ${m.id} cita a integração “${name}”, ausente da seção Integrações de docs/arquitetura/dados-e-integracoes.md. Pergunte-me como ela entra na arquitetura e registre.`);
+      }
+    }
 
   const order = { erro: 0, aviso: 1 } as const;
   return out.sort((a, b) => order[a.severity] - order[b.severity] || a.id.localeCompare(b.id));

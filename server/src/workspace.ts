@@ -127,7 +127,7 @@ export class Workspace {
   async open(input: string, remember = true): Promise<string> {
     const dir = checkProjectDir(input);
     if (this.server?.jobs.isRunning()) throw new HttpError(409, "Aguarde: o Claude está trabalhando neste projeto");
-    const next = await createServer({ ...this.base, projectDir: dir }, { bus: this.bus, watch: this.opts.watch, queryFn: this.opts.queryFn, proxyUrl: () => this.proxyUrl() });
+    const next = await createServer({ ...this.base, projectDir: dir }, { bus: this.bus, watch: this.opts.watch, queryFn: this.opts.queryFn, proxyUrl: () => this.proxyUrl(), kitDir: this.opts.kitDir ?? process.env.SPEC_STUDIO_KIT ?? KIT_DIR });
     await this.server?.close();
     this.server = next;
     this.dir = dir;

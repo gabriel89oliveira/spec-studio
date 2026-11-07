@@ -13,6 +13,17 @@ type Props = {
   onPack?: () => void;
 };
 
+/** O pedido da entrevista de arquitetura (projeto inteiro, não um arquivo só). */
+export function archPrompt(guide: { current: string | null; missing: { label: string }[] }, warnings: string[] = []): string {
+  const falta = guide.missing.map((m) => m.label).join("; ");
+  return (
+    `Entrevista de arquitetura.\n` +
+    (guide.current ? `Etapa atual: ${guide.current}. Falta: ${falta}.\n` : "") +
+    (warnings.length ? `A spec ainda está vaga em: ${warnings.join(" ")}\n` : "") +
+    `Siga a seção "Entrevista de arquitetura" de docs/arquitetura/README.md: proponha antes de perguntar, uma pergunta por vez, gravando cada resposta no arquivo certo.`
+  );
+}
+
 /** O pedido que o botão do cartão envia ao Claude, conforme o que falta. */
 export function guidePrompt(path: string, guide: Guide): string {
   const action = guide.missing[0]?.action;
@@ -29,6 +40,7 @@ export function guidePrompt(path: string, guide: Guide): string {
       `Siga a seção "Abertura do projeto" do CLAUDE.md: conduza o Conceito inteiro, uma pergunta por vez, gravando cada resposta.`
     );
   }
+  if (guide.kind === "architecture") return archPrompt(guide);
   const falta = guide.missing.map((m) => m.label).join("; ");
   return (
     `Entrevista guiada: etapa "${guide.current}" de ${path}.\n` +
@@ -153,7 +165,7 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
               title={!claudeEnabled ? "Configure o acesso ao Claude no .env" : "O Claude faz uma pergunta por vez e grava as respostas no arquivo"}
               onClick={() => onContinue(guidePrompt(path, guide))}
             >
-              {action ? BUTTON[action] : guide.kind === "concept" && guide.reached === 0 ? "Começar a entrevista de abertura" : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}
+              {action ? BUTTON[action] : guide.kind === "concept" && guide.reached === 0 ? "Começar a entrevista de abertura" : guide.kind === "architecture" ? "Continuar a entrevista de arquitetura" : pedeRevisao ? "Revisar com o Claude" : "Continuar com o Claude"}
             </button>
             )}
           </div>

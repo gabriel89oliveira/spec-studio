@@ -4,7 +4,7 @@
  * julga o conteúdo. A mesma regra serve ao cartão "Próximo passo" e ao modo simulado.
  */
 
-export type DocKind = "feature" | "module" | "source" | "concept" | "matrix";
+export type DocKind = "feature" | "module" | "source" | "concept" | "matrix" | "service" | "architecture";
 
 export type Missing = {
   id: string;
@@ -14,6 +14,8 @@ export type Missing = {
   ask: string;
   /** Seção do arquivo onde a resposta entra. */
   section?: string;
+  /** Arquivo onde a resposta entra, quando não é o documento aberto (guia da arquitetura). */
+  file?: string;
   /** O que fazer: sem valor = entrevista; extract/apply = pedido ao Claude; review = só o usuário. */
   action?: "extract" | "review" | "apply";
 };
@@ -38,6 +40,8 @@ export const MODULE_STEPS = ["Ideia", "Mapeado", "Detalhado"];
 export const SOURCE_STEPS = ["Importada", "Revisada", "Aplicada"];
 export const CONCEPT_STEPS = ["Visão", "Escopo", "Requisitos"];
 export const MATRIX_STEPS = ["Perfis", "Ações", "Preenchida"];
+export const SERVICE_STEPS = ["Ideia", "Definido", "Detalhado"];
+export const ARCH_STEPS = ["Contexto", "Serviços", "Dados e integrações", "Infraestrutura", "Qualidade"];
 
 const LATER_STATUS = ["em desenvolvimento", "concluida", "cancelada"];
 
@@ -55,6 +59,8 @@ export function kindOfPath(rel: string): DocKind | null {
   if (/^docs\/fontes\/[^/]+\.md$/i.test(rel)) return "source";
   if (/^docs\/CONCEITO\.md$/i.test(rel)) return "concept";
   if (/^docs\/permissoes\.md$/i.test(rel)) return "matrix";
+  if (/^docs\/arquitetura\/servicos\/[^/]+\.md$/i.test(rel)) return "service";
+  if (/^docs\/arquitetura\/(visao|dados-e-integracoes|infraestrutura|requisitos-nao-funcionais)\.md$/i.test(rel)) return "architecture";
   return null;
 }
 
@@ -72,10 +78,10 @@ export function sectionsOf(content: string): Map<string, string> {
   return out;
 }
 
-const lines = (body: string | undefined) => (body ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
-const bullets = (body: string | undefined) => lines(body).filter((l) => /^[-*]\s+\S/.test(l));
+export const lines = (body: string | undefined) => (body ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+export const bullets = (body: string | undefined) => lines(body).filter((l) => /^[-*]\s+\S/.test(l));
 const isDone = (l: string) => /^[-*]\s+(\[x\]|~~)/i.test(l);
-const has = (body: string | undefined) => lines(body).length > 0;
+export const has = (body: string | undefined) => lines(body).length > 0;
 
 /** Linha "| Campo | valor |" da tabela do topo. */
 function field(content: string, name: string): string | undefined {
@@ -103,7 +109,7 @@ const storyHasCriteria = (s: { body: string }) => {
   return !!m && bullets(m[1]).length > 0;
 };
 
-function doubtsOf(sec: Map<string, string>): number {
+export function doubtsOf(sec: Map<string, string>): number {
   return bullets(sec.get("duvidas em aberto")).filter((l) => !isDone(l)).length;
 }
 
@@ -342,6 +348,55 @@ function analyzeSource(content: string, sec: Map<string, string>): Guide {
   return { kind: "source", steps, reached, current: reached < steps.length ? steps[reached] : null, missing, doubts: 0 };
 }
 
+/** Itens "- Chave: valor" de uma seção, com a chave sem acento; valor vazio não conta. */
+export function keyValues(body: string | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const l of bullets(body)) {
+    const m = l.replace(/^[-*]\s+/, "").match(/^\**([^:*]+?)\**\s*:\s*(.+)$/);
+    if (m && m[2].trim()) out.set(norm(m[1]), m[2].trim());
+  }
+  return out;
+}
+
+const askDoubt = (sec: Map<string, string>) => `Vamos resolver a dúvida: ${bullets(sec.get("duvidas em aberto")).find((l) => !isDone(l))?.replace(/^[-*]\s+/, "") ?? ""}`;
+
+function analyzeService(content: string, sec: Map<string, string>): Guide {
+  const stack = keyValues(sec.get("stack"));
+  const checks: (() => Missing[])[] = [
+    () => {
+      const m: Missing[] = [];
+      if (!has(sec.get("responsabilidade"))) m.push({ id: "responsabilidade", label: "Responsabilidade, em uma frase", section: "Responsabilidade", ask: "Em uma ou duas frases, o que este serviço faz e por que ele é separado?" });
+      if (bullets(sec.get("modulos que cobre")).length === 0) m.push({ id: "modulos", label: "Módulos que o serviço cobre", section: "Módulos que cobre", ask: "Quais módulos (M01, M02…) este serviço implementa?" });
+      return m;
+    },
+    () => {
+      const m: Missing[] = [];
+      if (!stack.has("linguagem") || !stack.has("framework"))
+        m.push({ id: "stack", label: "Stack (linguagem e framework)", section: "Stack", ask: "Qual é a stack deste serviço: linguagem, framework, banco de dados e ferramenta de testes?" });
+      if (!has(sec.get("dados proprios"))) m.push({ id: "dados", label: "Dados próprios (ou declarar que não há)", section: "Dados próprios", ask: "Que dados este serviço guarda e controla sozinho? Onde ficam guardados?" });
+      return m;
+    },
+    () => {
+      const m: Missing[] = [];
+      if (!has(sec.get("api e contratos"))) m.push({ id: "api", label: "API e contratos", section: "API e contratos", ask: "O que este serviço expõe a outros (endpoints, eventos) e em que formato?" });
+      if (!has(sec.get("dependencias"))) m.push({ id: "dependencias", label: "Dependências (ou declarar que não há)", section: "Dependências", ask: "De quais outros serviços ou sistemas externos este serviço depende?" });
+      if (!has(sec.get("implantacao"))) m.push({ id: "implantacao", label: "Implantação", section: "Implantação", ask: "Como este serviço é empacotado e implantado (contêiner, servidor, variáveis de ambiente)?" });
+      const d = doubtsOf(sec);
+      if (d > 0) m.push({ id: "duvidas", label: `Resolver ${d} ${d === 1 ? "dúvida em aberto" : "dúvidas em aberto"}`, section: "Dúvidas em aberto", ask: askDoubt(sec) });
+      return m;
+    },
+  ];
+  let reached = 0;
+  let missing: Missing[] = [];
+  for (const c of checks) {
+    missing = c();
+    if (missing.length) break;
+    reached++;
+  }
+  void content;
+  return { kind: "service", steps: SERVICE_STEPS, reached, current: reached < SERVICE_STEPS.length ? SERVICE_STEPS[reached] : null, missing, doubts: doubtsOf(sec) };
+}
+
 /** Etapa e pendências de um documento; nulo para arquivos que não são feature nem módulo. */
 export function analyzeDoc(rel: string, content: string): Guide | null {
   const kind = kindOfPath(rel);
@@ -350,6 +405,8 @@ export function analyzeDoc(rel: string, content: string): Guide | null {
   if (kind === "source") return analyzeSource(content, sec);
   if (kind === "concept") return analyzeConcept(content, sec);
   if (kind === "matrix") return analyzeMatrix(content);
+  if (kind === "service") return analyzeService(content, sec);
+  if (kind === "architecture") return null; // o guia da arquitetura é do projeto todo: ver architecture.ts
   const defs = kind === "feature" ? featureSteps : moduleSteps;
   const steps = kind === "feature" ? FEATURE_STEPS : MODULE_STEPS;
   const doubts = doubtsOf(sec);

@@ -20,9 +20,11 @@ docs/
 ├── CONCEITO.md
 ├── permissoes.md
 ├── decisoes.md
+├── arquitetura/           visão, serviços, dados, infraestrutura, requisitos não funcionais
 ├── _templates/
 │   ├── modulo.md
-│   └── feature.md
+│   ├── feature.md
+│   └── servico.md
 ├── fontes/
 │   ├── S01-nome-da-fonte.md
 │   └── originais/
@@ -46,6 +48,8 @@ Cada módulo e cada feature nasce pequeno e cresce por etapas. Você não precis
 | Módulo | Ideia → Mapeado → Detalhado |
 | Conceito | Visão → Escopo → Requisitos |
 | Matriz de permissões | Perfis → Ações → Preenchida |
+| Arquitetura | Contexto → Serviços → Dados e integrações → Infraestrutura → Qualidade |
+| Serviço | Ideia → Definido → Detalhado |
 
 1. Comece pelo Conceito: visão, perfis, escopo e o mapa de módulos.
 2. Crie os módulos e leve cada um até "Ideia". Só depois aprofunde.

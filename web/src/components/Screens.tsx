@@ -3,6 +3,7 @@ import { api } from "../api";
 import type { Decision, DevPack, Issue, Overview, Progress, Screen } from "../types";
 import { btn, btnClaude, btnGhost, input } from "../ui";
 import { Sheet } from "./DocView";
+import { archPrompt } from "./GuideCard";
 import { IconClose } from "./Icons";
 
 type Common = {
@@ -117,6 +118,48 @@ export function OverviewScreen(p: Common) {
           {stat(o.counts.doubts, "dúvidas em aberto", o.counts.doubts ? "text-mark-ink" : "text-ink")}
           {stat(o.counts.issues, "problemas", o.counts.errors ? "text-danger" : "text-ink")}
         </div>
+
+        <section className="mb-8" data-testid="arch-section">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-[15px] font-semibold text-ink">Arquitetura</h2>
+            <button
+              className={btnClaude}
+              disabled={p.busy || !p.claudeEnabled}
+              title="O Claude propõe o desenho a partir da spec e pergunta uma coisa por vez. Cria os arquivos de docs/arquitetura se ainda não existirem."
+              onClick={() => p.onAsk(archPrompt(o.architecture.guide, o.architecture.warnings), "docs/arquitetura/visao.md")}
+            >
+              {o.architecture.started ? "Continuar a entrevista de arquitetura" : "Entrevista de arquitetura"}
+            </button>
+          </div>
+          {o.architecture.started ? (
+            <div className="space-y-3 rounded-xl border border-line/70 px-4 py-3">
+              <Bar p={o.architecture.guide} />
+              {o.architecture.services.length > 0 && (
+                <ul className="divide-y divide-line/60 text-[13.5px]">
+                  {o.architecture.services.map((s) => (
+                    <li key={s.id} className="flex items-center justify-between gap-3 py-1.5">
+                      <button className="text-left text-ink hover:underline" onClick={() => p.onOpen(s.path)}>
+                        <span className="font-mono text-xs text-ink-3">{s.id}</span> {s.name}
+                        {s.modules.length > 0 && <span className="ml-2 text-xs text-ink-3">cobre {s.modules.join(", ")}</span>}
+                      </button>
+                      <Bar p={s.guide} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {o.architecture.uncovered.length > 0 && <p className="text-xs text-mark-ink">Sem serviço: {o.architecture.uncovered.join(", ")}</p>}
+            </div>
+          ) : (
+            <p className="text-[13.5px] text-ink-2">Ainda não iniciada. Você pode começar a qualquer momento.</p>
+          )}
+          {o.architecture.warnings.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-xs text-mark-ink" data-testid="arch-warnings">
+              {o.architecture.warnings.map((w) => (
+                <li key={w}>⚠ {w}</li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="mb-8">
           <h2 className="mb-2 text-[15px] font-semibold text-ink">Próximos passos</h2>

@@ -9,9 +9,10 @@ import { CommentStore } from "./comments.js";
 import { hasCredentials, type Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
-import { analyzeDoc } from "./guide.js";
-import { checkProject } from "./consistency.js";
+import { analyzeDoc, kindOfPath } from "./guide.js";
+import { scaffoldArchitecture } from "./scaffold.js";
 import { loadProject } from "./project.js";
+import { checkProject } from "./consistency.js";
 import { devPack, overview, setStage, testPlan } from "./views.js";
 import { renameSource, saveSource, SOURCE_TYPES } from "./sources.js";
 import { GitService } from "./git.js";
@@ -43,7 +44,7 @@ const anchorSchema = z.object({
   suffix: z.string().max(200).default(""),
 });
 
-export type ServerOptions = { queryFn?: QueryFn; watch?: boolean; bus?: EventBus; proxyUrl?: () => Promise<string | undefined> };
+export type ServerOptions = { queryFn?: QueryFn; watch?: boolean; bus?: EventBus; proxyUrl?: () => Promise<string | undefined>; kitDir?: string };
 
 export async function createServer(config: Config, opts: ServerOptions = {}) {
   const root = config.projectDir;
@@ -137,7 +138,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
     h((req, res) => {
       const { abs, rel } = resolveDocPath(root, req.query.path);
       const doc = readDoc(abs, rel);
-      res.json({ ...doc, guide: analyzeDoc(rel, doc.content) });
+      res.json({ ...doc, guide: kindOfPath(rel) === "architecture" ? loadProject(root).architecture.guide : analyzeDoc(rel, doc.content) });
     }),
   );
 
@@ -269,6 +270,7 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
       );
       if (body.sessionId !== undefined && !SessionStore.isValidId(body.sessionId)) throw new HttpError(400, "Id de conversa inválido");
       const openFile = body.openFile ? resolveDocPath(root, body.openFile).rel : undefined;
+      if (/^Entrevista de arquitetura\b/m.test(body.message) && opts.kitDir) scaffoldArchitecture(root, opts.kitDir);
       const { job, sessionId } = jobs.startChat(body.message, body.sessionId, openFile);
       res.status(202).json({ jobId: job.id, sessionId });
     }),

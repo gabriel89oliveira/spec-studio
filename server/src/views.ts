@@ -1,7 +1,11 @@
+import { vagueSpec } from "./architecture.js";
 import { FEATURE_STEPS, norm, sectionsOf } from "./guide.js";
+import { coveredModules } from "./architecture.js";
 import type { Issue } from "./consistency.js";
 import type { Decision, Feature, Project } from "./project.js";
 import { HttpError } from "./util.js";
+
+const sectionsOfHasContent = (c: string) => [...sectionsOf(c).values()].some((v) => v.trim().length > 0);
 
 /** Etapa de uma feature: a declarada no arquivo, se for posterior à análise, senão a da análise. */
 export function stageOf(f: Feature): string {
@@ -28,6 +32,15 @@ export type Overview = {
   modules: { id: string; name: string; path: string; guide: { reached: number; steps: string[]; current: string | null } | null; features: { id: string; name: string; path: string; stage: string; missing: number; doubts: number }[] }[];
   orphans: { id: string; name: string; path: string; stage: string; missing: number; doubts: number }[];
   decisions: Decision[];
+  architecture: {
+    started: boolean;
+    guide: { reached: number; steps: string[]; current: string | null; missing: { label: string }[] };
+    services: { id: string; name: string; path: string; modules: string[]; guide: { reached: number; steps: string[]; current: string | null } | null }[];
+    /** Módulos ainda sem serviço (só quando já há serviços). */
+    uncovered: string[];
+    /** O que a spec ainda deixa vago; aviso antes da entrevista. */
+    warnings: string[];
+  };
   next: { text: string; path?: string }[];
 };
 
@@ -48,6 +61,13 @@ export function overview(p: Project, issues: Issue[]): Overview {
     const s = stageOf(f);
     if (["Ideia", "Entendida", "Detalhada"].includes(s) && f.guide?.missing[0]) next.push({ text: `${f.id}: ${f.guide.missing[0].label}`, path: f.path });
   }
+  const covered = new Map(p.architecture.services.map((x) => [x.id, coveredModules(x.content)] as const));
+  const coveredSet = new Set([...covered.values()].flat());
+  const moduleIds = [...new Set([...p.modules.map((m) => m.id), ...(p.concept?.moduleIds ?? [])])];
+  const arch = p.architecture;
+  const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.infra].some((c) => !!c && sectionsOfHasContent(c));
+  if (started && arch.guide.current && arch.guide.missing[0]) next.push({ text: `Arquitetura: ${arch.guide.missing[0].label}`, path: arch.guide.missing[0].file ?? "docs/arquitetura/visao.md" });
+  const conceptSec = p.concept ? sectionsOf(p.concept.content) : new Map<string, string>();
   return {
     name: p.concept?.content.match(/^#\s+(.+?)(?:\s+[—-]\s+Conceito)?\s*$/m)?.[1] ?? "Projeto",
     concept: g(p.concept?.guide),
@@ -65,6 +85,18 @@ export function overview(p: Project, issues: Issue[]): Overview {
     modules: p.modules.map((m) => ({ id: m.id, name: m.name, path: m.path, guide: g(m.guide), features: p.features.filter((f) => f.moduleId === m.id).map(mini) })),
     orphans: p.features.filter((f) => !f.moduleId || !known.has(f.moduleId)).map(mini),
     decisions: p.decisions,
+    architecture: {
+      started,
+      guide: { reached: arch.guide.reached, steps: arch.guide.steps, current: arch.guide.current, missing: arch.guide.missing.map((m) => ({ label: m.label })) },
+      services: arch.services.map((x) => ({ id: x.id, name: x.name, path: x.path, modules: covered.get(x.id) ?? [], guide: g(x.guide) })),
+      uncovered: arch.services.length ? moduleIds.filter((id) => !coveredSet.has(id)) : [],
+      warnings: vagueSpec({
+        conceptCurrent: p.concept?.guide?.current ?? null,
+        hasRequirements: !!conceptSec.get("requisitos gerais")?.trim(),
+        modules: p.modules.map((m) => ({ id: m.id, reached: m.guide?.reached ?? 0 })),
+        decisionsOpen: open.length,
+      }),
+    },
     next: next.slice(0, 5),
   };
 }
