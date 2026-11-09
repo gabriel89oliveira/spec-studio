@@ -1,4 +1,4 @@
-import type { ProxyTest, AppInfo, Settings, SettingsPatch, Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, TreeNode } from "./types";
+import type { ProxyTest, AppInfo, Settings, SettingsPatch, Browse, WorkspaceInfo, Anchor, ChatSession, Comment, Decision, DevPack, FileDoc, HistoryEntry, Issue, Overview, Project, SourceIndex, TreeNode } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -46,6 +46,11 @@ export const api = {
   file: (path: string) => req<FileDoc>("GET", `/api/file?path=${q(path)}`),
   saveFile: (path: string, content: string, baseHash: string) =>
     req<{ path: string; hash: string; commit: string | null }>("PUT", "/api/file", { path, content, baseHash }),
+
+  sourceIndex: (id: string) => req<SourceIndex>("GET", `/api/sources/${id}/index`),
+  sourcePiece: (id: string, pid: string) => req<{ id: string; title: string; start: number; end: number; text: string }>("GET", `/api/sources/${id}/pieces/${q(pid)}`),
+  sourcePrompt: (id: string, body: { mode: "summarize" | "apply"; group?: string; ids?: string[] }) => req<{ prompt: string; pieces: number; chars: number }>("POST", `/api/sources/${id}/prompt`, body),
+  discardPieces: (id: string, ids: string[], reason: string) => req<{ path: string; hash: string }>("POST", `/api/sources/${id}/discard`, { ids, reason }),
 
   appInfo: () => req<AppInfo>("GET", "/api/app"),
   checkUpdate: () => req<{ ok: boolean }>("POST", "/api/app/check-update"),

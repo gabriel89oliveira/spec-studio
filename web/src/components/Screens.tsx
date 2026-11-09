@@ -119,6 +119,26 @@ export function OverviewScreen(p: Common) {
           {stat(o.counts.issues, "problemas", o.counts.errors ? "text-danger" : "text-ink")}
         </div>
 
+        {o.sources.length > 0 && (
+          <section className="mb-8" data-testid="sources-section">
+            <h2 className="mb-2 text-[15px] font-semibold text-ink">Fontes grandes</h2>
+            <ul className="divide-y divide-line/60 rounded-xl border border-line/70 px-4 text-[13.5px]">
+              {o.sources.map((s) => (
+                <li key={s.id} className="py-2">
+                  <button className="flex w-full items-baseline justify-between gap-3 text-left hover:underline" onClick={() => p.onOpen(s.path)}>
+                    <span className="min-w-0 truncate text-ink">
+                      <span className="font-mono text-xs text-ink-3">{s.id}</span> {s.name}
+                    </span>
+                    <span className="shrink-0 text-xs text-ink-2">
+                      {s.used + s.discarded} de {s.total} resolvidas · {s.pending} pendentes
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="mb-8" data-testid="arch-section">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-[15px] font-semibold text-ink">Arquitetura</h2>

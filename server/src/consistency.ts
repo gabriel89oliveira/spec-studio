@@ -1,3 +1,4 @@
+import { bigSources, fonteCitations } from "./bigsource.js";
 import { coveredModules, entitiesOf, mermaidBlocks, relationsOf } from "./architecture.js";
 import { bullets, contractsOf, keyValues, matrixOf, norm, sectionsOf } from "./guide.js";
 import { storiesOf } from "./views.js";
@@ -139,6 +140,16 @@ export function checkProject(p: Project, today = todayIso()): Issue[] {
     for (const sv of arch.services)
       if (!new RegExp(`\\b${sv.id}\\b`, "i").test(ambientes))
         add("servico-fora-do-ambiente", sv.id, "aviso", `${sv.id} não aparece em “Serviços por ambiente”.`, [sv.path, "docs/arquitetura/infraestrutura.md"], `O serviço ${sv.id} não consta em Serviços por ambiente de docs/arquitetura/infraestrutura.md. Pergunte-me onde ele roda em cada ambiente e registre.`);
+  // Citações de peças de fontes grandes
+  const cites = fonteCitations(p.root);
+  for (const v of bigSources(p.root)) {
+    const known = new Set(v.pieces.map((x) => x.id));
+    const families = new Set(v.pieces.map((x) => x.id.replace(/-[A-Z]?\d+(?:\.\d+)*$/, "")));
+    for (const [token, files] of cites.get(v.id) ?? [])
+      if (!known.has(token) && families.has(token.replace(/-[A-Z]?\d+(?:\.\d+)*$/, "")))
+        add("fonte-peca-inexistente", `${v.id}:${token}`, "erro", `${files[0]} cita ${token} em ${v.id}, mas a fonte não tem essa peça.`, files, `O documento ${files[0]} cita [fonte: ${v.id}, ${token}], mas ${v.ficha} não tem a peça ${token}. Corrija o ID da citação ou remova-a.`);
+  }
+
   // Contratos
   const epSeen = new Map<string, string>();
   for (const sv of arch.services) {

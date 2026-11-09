@@ -201,6 +201,28 @@ function plan(root: string, prompt: string, resume?: string): Plan {
     };
   }
 
+  // Fontes grandes: resumo de grupo e aplicação de peças.
+  if (/^Resumo de grupo de fonte grande\b/m.test(prompt)) {
+    const rel = prompt.match(/^Ficha: (\S+)$/m)?.[1];
+    const group = prompt.match(/^Grupo: "(.+)" \(\d+ peças\)$/m)?.[1];
+    const abs = rel ? checkAgentPath(root, rel) : null;
+    if (rel && group && abs?.ok && fs.existsSync(abs.abs)) {
+      const c = appendToSection(fs.readFileSync(abs.abs, "utf8"), "Resumo por grupo", `### ${group}\nResumo de exemplo gerado pelo modo simulado.`);
+      return { kind: "interview", rel, content: c, summary: `resumi o grupo "${group}" em \`${rel}\`` };
+    }
+  }
+  if (/^Aplicação de peças de fonte grande\b/m.test(prompt)) {
+    const src = prompt.match(/^Fonte: (S\d+)/m)?.[1];
+    const ids = [...prompt.matchAll(/^### (\S+) — /gm)].map((m) => m[1]);
+    const rel = "docs/CONCEITO.md";
+    const abs = checkAgentPath(root, rel);
+    if (src && ids.length && abs.ok && fs.existsSync(abs.abs)) {
+      const lines = ids.map((id) => `- Regra aplicada em modo simulado [fonte: ${src}, ${id}]`).join("\n");
+      const c = appendToSection(fs.readFileSync(abs.abs, "utf8"), "Requisitos gerais", lines);
+      return { kind: "interview", rel, content: c, summary: `registrei ${ids.length} peça(s) em \`${rel}\` (no modo simulado o destino é sempre o Conceito)` };
+    }
+  }
+
   // Fontes de contexto: extração das propostas e aplicação das aceitas.
   const extract = prompt.match(/^Extração de fonte: (\S+?)\.?$/m);
   if (extract) {

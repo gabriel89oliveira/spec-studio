@@ -10,6 +10,7 @@ import { hasCredentials, type Config } from "./config.js";
 import { EventBus, SourceTracker } from "./events.js";
 import { listTree, readDoc, writeDoc } from "./files.js";
 import { analyzeDoc, kindOfPath } from "./guide.js";
+import { bigSourceGuide, buildPrompt, discardPieces, pieceText, sourceView } from "./bigsource.js";
 import { scaffoldArchitecture } from "./scaffold.js";
 import { loadProject } from "./project.js";
 import { checkProject } from "./consistency.js";
@@ -138,7 +139,9 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
     h((req, res) => {
       const { abs, rel } = resolveDocPath(root, req.query.path);
       const doc = readDoc(abs, rel);
-      res.json({ ...doc, guide: kindOfPath(rel) === "architecture" ? loadProject(root).architecture.guide : analyzeDoc(rel, doc.content) });
+      const sid = kindOfPath(rel) === "source" ? rel.match(/\/(S\d+)-/i)?.[1] : undefined;
+      const big = sid ? sourceView(root, sid) : null;
+      res.json({ ...doc, guide: big ? bigSourceGuide(big) : kindOfPath(rel) === "architecture" ? loadProject(root).architecture.guide : analyzeDoc(rel, doc.content) });
     }),
   );
 
@@ -162,6 +165,50 @@ export async function createServer(config: Config, opts: ServerOptions = {}) {
       const commit = config.autoCommit ? await git.commitPaths([saved.ficha, saved.original], `fonte: ${body.name}`) : null;
       bus.emit("tree.changed", {});
       res.status(201).json({ ...saved, commit });
+    }),
+  );
+
+  const sourceId = (req: express.Request) => {
+    const id = String(req.params.id ?? "");
+    if (!/^S\d+$/i.test(id)) throw new HttpError(400, "ID de fonte inválido");
+    return id.toUpperCase();
+  };
+
+  app.get(
+    "/api/sources/:id/index",
+    h((req, res) => {
+      const v = sourceView(root, sourceId(req));
+      if (!v) return res.json({ big: false });
+      res.json(v);
+    }),
+  );
+
+  app.get(
+    "/api/sources/:id/pieces/:pid",
+    h((req, res) => {
+      const { piece, text } = pieceText(root, sourceId(req), String(req.params.pid));
+      res.json({ id: piece.id, title: piece.title, start: piece.start, end: piece.end, text });
+    }),
+  );
+
+  app.post(
+    "/api/sources/:id/prompt",
+    h((req, res) => {
+      const body = parse(z.object({ mode: z.enum(["summarize", "apply"]), group: z.string().optional(), ids: z.array(z.string()).max(200).optional() }), req.body);
+      res.json(buildPrompt(root, sourceId(req), body.mode, { group: body.group, ids: body.ids }));
+    }),
+  );
+
+  app.post(
+    "/api/sources/:id/discard",
+    h(async (req, res) => {
+      const body = parse(z.object({ ids: z.array(z.string()).min(1).max(500), reason: z.string().max(300) }), req.body);
+      assertIdle();
+      const ficha = discardPieces(root, sourceId(req), body.ids, body.reason);
+      const { hash } = readDoc(path.join(root, ...ficha.split("/")), ficha);
+      tracker.mark(ficha, hash, "manual");
+      const commit = config.autoCommit ? await git.commitPaths([ficha], `fonte: ${body.ids.length} peças descartadas (${sourceId(req)})`) : null;
+      res.json({ path: ficha, hash, commit });
     }),
   );
 

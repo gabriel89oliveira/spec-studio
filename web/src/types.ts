@@ -10,7 +10,7 @@ export type TreeNode = {
   features?: TreeNode[];
 };
 
-export type GuideMissing = { id: string; label: string; ask: string; section?: string; file?: string; action?: "extract" | "review" | "apply" };
+export type GuideMissing = { id: string; label: string; ask: string; section?: string; file?: string; action?: "extract" | "review" | "apply" | "index" };
 export type Guide = {
   kind: "feature" | "module" | "source" | "concept" | "matrix" | "service" | "architecture";
   steps: string[];
@@ -135,6 +135,7 @@ export type Overview = {
   modules: { id: string; name: string; path: string; guide: Progress | null; features: FeatureLine[] }[];
   orphans: FeatureLine[];
   decisions: Decision[];
+  sources: { id: string; name: string; path: string; total: number; used: number; discarded: number; pending: number }[];
   architecture: {
     started: boolean;
     guide: Progress & { missing: { label: string }[] };
@@ -167,3 +168,25 @@ export type ProxyView = { enabled: boolean; mode: "manual" | "pac"; host: string
 export type ProxyPatch = Partial<Omit<ProxyView, "passwordSet">> & { password?: string | null };
 export type ProxyTest = { ok: boolean; message: string; via?: string };
 export type SettingsPatch = Partial<Pick<Settings, "baseUrl" | "customHeaders" | "model" | "userName">> & { apiKey?: string | null; authToken?: string | null; proxy?: ProxyPatch };
+
+export type PieceStatus = "usada" | "descartada" | "pendente";
+export type SourcePiece = { id: string; title: string; group: string; weight: number | null; start: number; end: number; chars: number; kind: string; status: PieceStatus; usedIn: string[]; reason?: string };
+export type SourceIndex =
+  | { big: false }
+  | {
+      big: true;
+      id: string;
+      name: string;
+      ficha: string;
+      original: string;
+      strategy: "ids" | "secoes" | "janelas";
+      lines: number;
+      chars: number;
+      tokens: number;
+      total: number;
+      used: number;
+      discarded: number;
+      pending: number;
+      groups: { name: string; total: number; used: number; discarded: number; summarized: boolean }[];
+      pieces: SourcePiece[];
+    };

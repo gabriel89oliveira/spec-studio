@@ -1,4 +1,5 @@
 import { coveredModules, entitiesOf, vagueSpec } from "./architecture.js";
+import { bigSources } from "./bigsource.js";
 import { FEATURE_STEPS, norm, sectionsOf } from "./guide.js";
 import type { Issue } from "./consistency.js";
 import type { Decision, Feature, Project } from "./project.js";
@@ -31,6 +32,8 @@ export type Overview = {
   modules: { id: string; name: string; path: string; guide: { reached: number; steps: string[]; current: string | null } | null; features: { id: string; name: string; path: string; stage: string; missing: number; doubts: number }[] }[];
   orphans: { id: string; name: string; path: string; stage: string; missing: number; doubts: number }[];
   decisions: Decision[];
+  /** Fontes grandes (fatiadas em peças) e quanto delas já tem destino. */
+  sources: { id: string; name: string; path: string; total: number; used: number; discarded: number; pending: number }[];
   architecture: {
     started: boolean;
     guide: { reached: number; steps: string[]; current: string | null; missing: { label: string }[] };
@@ -66,6 +69,7 @@ export function overview(p: Project, issues: Issue[]): Overview {
   const arch = p.architecture;
   const started = arch.services.length > 0 || arch.rnfs.length > 0 || [arch.docs.visao, arch.docs.dados, arch.docs.modelo, arch.docs.infra, arch.docs.exec, arch.docs.transv, arch.docs.testes, arch.docs.riscos].some((c) => !!c && sectionsOfHasContent(c));
   if (started && arch.guide.current && arch.guide.missing[0]) next.push({ text: `Arquitetura: ${arch.guide.missing[0].label}`, path: arch.guide.missing[0].file ?? "docs/arquitetura/visao.md" });
+  for (const v of bigSources(p.root)) if (v.pending > 0) next.push({ text: `${v.id}: ${v.pending} de ${v.total} peças da fonte sem destino`, path: v.ficha });
   const conceptSec = p.concept ? sectionsOf(p.concept.content) : new Map<string, string>();
   return {
     name: p.concept?.content.match(/^#\s+(.+?)(?:\s+[—-]\s+Conceito)?\s*$/m)?.[1] ?? "Projeto",
@@ -84,6 +88,7 @@ export function overview(p: Project, issues: Issue[]): Overview {
     modules: p.modules.map((m) => ({ id: m.id, name: m.name, path: m.path, guide: g(m.guide), features: p.features.filter((f) => f.moduleId === m.id).map(mini) })),
     orphans: p.features.filter((f) => !f.moduleId || !known.has(f.moduleId)).map(mini),
     decisions: p.decisions,
+    sources: bigSources(p.root).map((v) => ({ id: v.id, name: v.name, path: v.ficha, total: v.total, used: v.used, discarded: v.discarded, pending: v.pending })),
     architecture: {
       started,
       guide: { reached: arch.guide.reached, steps: arch.guide.steps, current: arch.guide.current, missing: arch.guide.missing.map((m) => ({ label: m.label })) },

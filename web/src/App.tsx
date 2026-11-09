@@ -4,6 +4,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
 import { DiffView } from "./components/DiffView";
 import { DocView, Sheet } from "./components/DocView";
+import { SourceIndexPanel } from "./components/SourceIndexPanel";
 import { GuideCard } from "./components/GuideCard";
 import { applyTask, type TaskAction } from "./tasks";
 import { IconClose } from "./components/Icons";
@@ -501,6 +502,19 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
                 }}
                 onStage={featureId ? (st) => void changeStage(st) : undefined}
                 onPack={featureId ? () => setPackFor(featureId) : undefined}
+              />
+            )}
+            {showDoc && live.doc && mode === "view" && sourceMatch && (
+              <SourceIndexPanel
+                sourceId={sourceMatch[1].toUpperCase()}
+                refreshKey={`${rev}:${live.doc.hash}`}
+                busy={busy}
+                claudeEnabled={claudeEnabled}
+                onAsk={ask}
+                onChanged={() => {
+                  void live.reload();
+                  void refreshTree();
+                }}
               />
             )}
             {showDoc && live.doc && mode === "view" && live.doc.guide?.kind === "matrix" && (

@@ -17,7 +17,7 @@ export type Missing = {
   /** Arquivo onde a resposta entra, quando não é o documento aberto (guia da arquitetura). */
   file?: string;
   /** O que fazer: sem valor = entrevista; extract/apply = pedido ao Claude; review = só o usuário. */
-  action?: "extract" | "review" | "apply";
+  action?: "extract" | "review" | "apply" | "index";
 };
 
 export type Guide = {

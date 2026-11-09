@@ -156,7 +156,9 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
                 ))}
               </ul>
             </div>
-            {review ? (
+            {action === "index" ? (
+              <p className="max-w-[210px] shrink-0 text-right text-xs leading-snug text-ink-3">Use o painel de peças logo abaixo.</p>
+            ) : review ? (
               <p className="max-w-[210px] shrink-0 text-right text-xs leading-snug text-ink-3">Marque a caixa para aceitar ou use × para descartar.</p>
             ) : (
             <button
