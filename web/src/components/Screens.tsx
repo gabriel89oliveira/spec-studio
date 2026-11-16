@@ -35,7 +35,7 @@ function useLoad<T>(load: () => Promise<T>, key: string) {
 const Title = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
   <div className="mb-6">
     <h1 className="text-[26px] font-semibold leading-tight text-ink">{children}</h1>
-    {sub && <p className="mt-1 text-[13.5px] text-ink-2">{sub}</p>}
+    {sub && <p className="mt-1 text-label text-ink-2">{sub}</p>}
   </div>
 );
 
@@ -43,14 +43,14 @@ const STAGE_TONE: Record<string, string> = {
   Ideia: "bg-wash text-ink-2",
   Entendida: "bg-wash text-ink-2",
   Detalhada: "bg-accent-soft text-accent",
-  "Pronta para dev": "bg-claude-soft text-claude",
+  "Pronta para dev": "bg-add-soft text-add",
   "Em desenvolvimento": "bg-mark-soft text-mark-ink",
   Concluída: "bg-add-soft text-add",
   Cancelada: "bg-wash text-ink-3",
 };
 
 export const StageChip = ({ stage }: { stage: string }) => (
-  <span className={`inline-flex h-[20px] items-center rounded-full px-2 text-[11px] font-medium ${STAGE_TONE[stage] ?? "bg-wash text-ink-2"}`}>{stage}</span>
+  <span className={`inline-flex h-[20px] items-center rounded-full px-2 text-2xs font-medium ${STAGE_TONE[stage] ?? "bg-wash text-ink-2"}`}>{stage}</span>
 );
 
 function Bar({ p }: { p: Progress | null }) {
@@ -99,7 +99,7 @@ export function OverviewScreen(p: Common) {
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-claude/30 bg-claude-soft px-5 py-4" data-testid="start-here">
             <div>
               <div className="text-[15px] font-semibold text-ink">O Conceito ainda está incompleto</div>
-              <p className="mt-0.5 text-[13.5px] text-ink-2">O Claude conduz uma entrevista: você conta a ideia, ele pergunta o que falta, monta o Conceito e sugere os módulos.</p>
+              <p className="mt-0.5 text-label text-ink-2">O Claude conduz uma entrevista: você conta a ideia, ele pergunta o que falta, monta o Conceito e sugere os módulos.</p>
             </div>
             <button
               className={btnClaude}
@@ -121,9 +121,9 @@ export function OverviewScreen(p: Common) {
 
         <section className="mb-8" data-testid="arch-section">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-ink">Arquitetura</h2>
+            <h2 className="text-lg font-semibold text-ink">Arquitetura</h2>
             <button
-              className={btnClaude}
+              className={btn}
               disabled={p.busy || !p.claudeEnabled}
               title="O Claude propõe o desenho a partir da spec e pergunta uma coisa por vez. Cria os arquivos de docs/arquitetura se ainda não existirem."
               onClick={() => p.onAsk(archPrompt(o.architecture.guide, o.architecture.warnings), "docs/arquitetura/visao.md")}
@@ -135,7 +135,7 @@ export function OverviewScreen(p: Common) {
             <div className="space-y-3 rounded-xl border border-line/70 px-4 py-3">
               <Bar p={o.architecture.guide} />
               {o.architecture.services.length > 0 && (
-                <ul className="divide-y divide-line/60 text-[13.5px]">
+                <ul className="divide-y divide-line/60 text-label">
                   {o.architecture.services.map((s) => (
                     <li key={s.id} className="flex items-center justify-between gap-3 py-1.5">
                       <button className="text-left text-ink hover:underline" onClick={() => p.onOpen(s.path)}>
@@ -150,7 +150,7 @@ export function OverviewScreen(p: Common) {
               {o.architecture.uncovered.length > 0 && <p className="text-xs text-mark-ink">Sem serviço: {o.architecture.uncovered.join(", ")}</p>}
             </div>
           ) : (
-            <p className="text-[13.5px] text-ink-2">Ainda não iniciada. Você pode começar a qualquer momento.</p>
+            <p className="text-label text-ink-2">Ainda não iniciada. Você pode começar a qualquer momento.</p>
           )}
           {o.architecture.warnings.length > 0 && (
             <ul className="mt-2 space-y-0.5 text-xs text-mark-ink" data-testid="arch-warnings">
@@ -162,13 +162,13 @@ export function OverviewScreen(p: Common) {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-2 text-[15px] font-semibold text-ink">Próximos passos</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink">Próximos passos</h2>
           {o.next.length === 0 ? (
-            <p className="text-[13.5px] text-ink-2">Nada pendente. O projeto está em dia.</p>
+            <p className="text-label text-ink-2">Nada pendente. O projeto está em dia.</p>
           ) : (
             <ul className="divide-y divide-line/60 rounded-xl border border-line/70">
               {o.next.map((n, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13.5px]">
+                <li key={i} className="flex items-center justify-between gap-3 px-4 py-2.5 text-label">
                   <span className="text-ink">{n.text}</span>
                   {n.path && (
                     <button className={btnGhost} onClick={() => p.onOpen(n.path!)}>
@@ -182,11 +182,11 @@ export function OverviewScreen(p: Common) {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-2 text-[15px] font-semibold text-ink">Base do projeto</h2>
+          <h2 className="mb-2 text-lg font-semibold text-ink">Base do projeto</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {([["Conceito", "docs/CONCEITO.md", o.concept], ["Matriz de permissões", "docs/permissoes.md", o.matrix]] as const).map(([label, path, g]) => (
               <button key={path} className="flex items-center justify-between gap-3 rounded-xl border border-line/70 px-4 py-3 text-left hover:border-line-strong" onClick={() => p.onOpen(path)}>
-                <span className="text-[13.5px] font-medium text-ink">{label}</span>
+                <span className="text-label font-medium text-ink">{label}</span>
                 <Bar p={g} />
               </button>
             ))}
@@ -195,7 +195,7 @@ export function OverviewScreen(p: Common) {
 
         <section>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15px] font-semibold text-ink">Módulos e features</h2>
+            <h2 className="text-lg font-semibold text-ink">Módulos e features</h2>
             <div className="flex flex-wrap gap-1.5">
               {o.stages.map((s) => (
                 <span key={s.stage} className="flex items-center gap-1">
@@ -205,12 +205,12 @@ export function OverviewScreen(p: Common) {
               ))}
             </div>
           </div>
-          {o.modules.length === 0 && o.orphans.length === 0 && <p className="text-[13.5px] text-ink-2">Ainda não há módulos nem features.</p>}
+          {o.modules.length === 0 && o.orphans.length === 0 && <p className="text-label text-ink-2">Ainda não há módulos nem features.</p>}
           <div className="space-y-3">
             {o.modules.map((m) => (
               <div key={m.id} className="rounded-xl border border-line/70">
                 <button className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left" onClick={() => p.onOpen(m.path)}>
-                  <span className="text-[13.5px] font-medium text-ink">
+                  <span className="text-label font-medium text-ink">
                     {m.id} · {m.name}
                   </span>
                   <Bar p={m.guide} />
@@ -226,7 +226,7 @@ export function OverviewScreen(p: Common) {
             ))}
             {o.orphans.length > 0 && (
               <div className="rounded-xl border border-line/70">
-                <div className="px-4 py-2.5 text-[13.5px] font-medium text-ink">Sem módulo</div>
+                <div className="px-4 py-2.5 text-label font-medium text-ink">Sem módulo</div>
                 <ul className="divide-y divide-line/60 border-t border-line/60">
                   {o.orphans.map((f) => (
                     <FeatureRow key={f.id} f={f} onOpen={p.onOpen} />
@@ -245,7 +245,7 @@ function FeatureRow({ f, onOpen }: { f: Overview["orphans"][number]; onOpen: (p:
   return (
     <li>
       <button className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left hover:bg-wash" onClick={() => onOpen(f.path)}>
-        <span className="min-w-0 truncate text-[13px] text-ink">
+        <span className="min-w-0 truncate text-label text-ink">
           {f.id} · {f.name}
         </span>
         <span className="flex shrink-0 items-center gap-2">
@@ -269,21 +269,21 @@ export function IssuesScreen(p: Common) {
       <div data-testid="issues">
         <Title sub="Pontos em que os documentos se contradizem ou estão incompletos.">Problemas do projeto</Title>
         {issues.length === 0 ? (
-          <p className="rounded-xl border border-line/70 px-4 py-6 text-center text-[13.5px] text-ink-2">Nenhum problema encontrado. Conceito, módulos, features e permissões estão consistentes.</p>
+          <p className="rounded-xl border border-line/70 px-4 py-6 text-center text-label text-ink-2">Nenhum problema encontrado. Conceito, módulos, features e permissões estão consistentes.</p>
         ) : (
           <ul className="space-y-2">
             {issues.map((i) => (
               <li key={i.id} className="flex items-start gap-3 rounded-xl border border-line/70 px-4 py-3" data-testid="issue">
                 <span
-                  className={`mt-[3px] inline-flex h-[20px] shrink-0 items-center rounded-full px-2 text-[11px] font-semibold ${i.severity === "erro" ? "bg-danger-soft text-danger" : "bg-mark-soft text-mark-ink"}`}
+                  className={`mt-[3px] inline-flex h-[20px] shrink-0 items-center rounded-full px-2 text-2xs font-semibold ${i.severity === "erro" ? "bg-danger-soft text-danger" : "bg-mark-soft text-mark-ink"}`}
                 >
                   {i.severity === "erro" ? "Erro" : "Aviso"}
                 </span>
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="text-[13.5px] leading-snug text-ink">{i.message}</p>
+                  <p className="text-label leading-snug text-ink">{i.message}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {i.files.map((f) => (
-                      <button key={f} className="rounded-md bg-wash px-1.5 py-0.5 font-mono text-[11px] text-ink-2 hover:text-ink" onClick={() => p.onOpen(f)}>
+                      <button key={f} className="rounded-md bg-wash px-1.5 py-0.5 font-mono text-2xs text-ink-2 hover:text-ink" onClick={() => p.onOpen(f)}>
                         {f.replace(/^docs\//, "")}
                       </button>
                     ))}
@@ -354,7 +354,7 @@ export function DecisionsScreen(p: Common) {
           </div>
         )}
         {list.length === 0 ? (
-          <p className="rounded-xl border border-line/70 px-4 py-6 text-center text-[13.5px] text-ink-2">Nenhuma decisão registrada. Quando surgir uma pergunta que bloqueia o projeto, registre aqui.</p>
+          <p className="rounded-xl border border-line/70 px-4 py-6 text-center text-label text-ink-2">Nenhuma decisão registrada. Quando surgir uma pergunta que bloqueia o projeto, registre aqui.</p>
         ) : (
           <ul className="space-y-2">
             {list.map((d) => {
@@ -365,13 +365,13 @@ export function DecisionsScreen(p: Common) {
                 <li key={d.id} className="rounded-xl border border-line/70" data-testid="decision">
                   <button className="flex w-full items-center gap-3 px-4 py-3 text-left" onClick={() => setOpenId(isOpen ? null : d.id)} aria-expanded={isOpen}>
                     <span className="font-mono text-xs text-ink-3">{d.id}</span>
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-ink">{d.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-label font-medium text-ink">{d.title}</span>
                     {d.affects.length > 0 && <span className="hidden text-xs text-ink-3 md:inline">{d.affects.join(", ")}</span>}
                     {late && <span className="text-xs font-medium text-danger">vencida</span>}
-                    <span className={`inline-flex h-[20px] shrink-0 items-center rounded-full px-2 text-[11px] font-medium ${decTone(d.status)}`}>{d.status}</span>
+                    <span className={`inline-flex h-[20px] shrink-0 items-center rounded-full px-2 text-2xs font-medium ${decTone(d.status)}`}>{d.status}</span>
                   </button>
                   {isOpen && (
-                    <div className="space-y-3 border-t border-line/60 px-4 py-3 text-[13.5px] leading-snug text-ink-2">
+                    <div className="space-y-3 border-t border-line/60 px-4 py-3 text-label leading-snug text-ink-2">
                       {d.context && <p><span className="font-medium text-ink">Contexto.</span> {d.context}</p>}
                       {d.options.length > 0 && (
                         <div>
@@ -470,7 +470,7 @@ export function DevPackModal({ featureId, onClose }: { featureId: string; onClos
                 <button className={btnClaude} onClick={copy}>{copied ? "Copiado" : "Copiar"}</button>
               </div>
             </div>
-            <pre className="m-5 min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-lg border border-line/70 bg-wash/40 p-4 font-mono text-[12px] leading-relaxed text-ink" data-testid="devpack-text">{text}</pre>
+            <pre className="m-5 min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-lg border border-line/70 bg-wash/40 p-4 font-mono text-xs leading-relaxed text-ink" data-testid="devpack-text">{text}</pre>
           </>
         )}
       </div>

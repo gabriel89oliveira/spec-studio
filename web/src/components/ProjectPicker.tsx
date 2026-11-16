@@ -99,7 +99,7 @@ export function ProjectPicker({ onClose, info }: Props) {
       <div className="flex items-start justify-between gap-3 border-b border-line/70 px-6 py-4">
         <div>
           <h1 className="text-[20px] font-semibold text-ink">{onClose ? "Trocar de projeto" : "Escolha o projeto"}</h1>
-          <p className="mt-0.5 text-[13px] text-ink-2">Abra uma pasta de projeto existente ou crie um projeto novo a partir do kit.</p>
+          <p className="mt-0.5 text-label text-ink-2">Abra uma pasta de projeto existente ou crie um projeto novo a partir do kit.</p>
         </div>
         {onClose && (
           <button className="rounded-md p-1 text-ink-2 hover:bg-wash disabled:opacity-40" onClick={onClose} disabled={waiting} aria-label="Fechar">
@@ -118,7 +118,7 @@ export function ProjectPicker({ onClose, info }: Props) {
                 onClick={() => void openExisting()}
                 data-testid="open-existing"
               >
-                <div className="text-[14.5px] font-semibold text-ink">Abrir pasta de projeto…</div>
+                <div className="text-sm font-semibold text-ink">Abrir pasta de projeto…</div>
                 <div className="mt-1 text-xs leading-snug text-ink-2">Escolha na janela do sistema uma pasta que já tem o CLAUDE.md.</div>
               </button>
               <button
@@ -127,7 +127,7 @@ export function ProjectPicker({ onClose, info }: Props) {
                 onClick={() => void chooseParent()}
                 data-testid="create-new"
               >
-                <div className="text-[14.5px] font-semibold text-ink">Criar projeto novo…</div>
+                <div className="text-sm font-semibold text-ink">Criar projeto novo…</div>
                 <div className="mt-1 text-xs leading-snug text-ink-2">Escolha onde guardar. O app copia o kit e começa pelo Conceito.</div>
               </button>
             </div>
@@ -148,11 +148,11 @@ export function ProjectPicker({ onClose, info }: Props) {
                         disabled={busy || waiting || r.path === info.current}
                         onClick={() => void finish(() => api.openProject(r.path))}
                       >
-                        <span className="shrink-0 text-[13.5px] font-medium text-ink">
+                        <span className="shrink-0 text-label font-medium text-ink">
                           {r.name}
                           {r.path === info.current && <span className="ml-2 text-xs font-normal text-ink-3">aberto agora</span>}
                         </span>
-                        <span className="truncate font-mono text-[11px] text-ink-3" title={r.path}>
+                        <span className="truncate font-mono text-2xs text-ink-3" title={r.path}>
                           {r.path}
                         </span>
                       </button>
@@ -178,7 +178,7 @@ export function ProjectPicker({ onClose, info }: Props) {
                 <div className="mt-2 space-y-2">
                   <div className="flex gap-2">
                     <input
-                      className={`${input} font-mono !text-[12.5px]`}
+                      className={`${input} font-mono !text-xs`}
                       value={typed}
                       onChange={(e) => setTyped(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && void browse(typed)}
@@ -218,7 +218,7 @@ export function ProjectPicker({ onClose, info }: Props) {
                         {b.dirs.length === 0 && <li className="px-3 py-3 text-xs italic text-ink-3">Nenhuma subpasta.</li>}
                         {b.dirs.map((d) => (
                           <li key={d.path}>
-                            <button className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink hover:bg-wash" onClick={() => void browse(d.path)}>
+                            <button className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-label text-ink hover:bg-wash" onClick={() => void browse(d.path)}>
                               <IconChevron className="h-3 w-3 text-ink-3" />
                               {d.name}
                             </button>
@@ -236,7 +236,7 @@ export function ProjectPicker({ onClose, info }: Props) {
             <div>
               <div className="text-xs text-ink-2">Pasta onde o projeto será criado</div>
               <div className="mt-1 flex items-center justify-between gap-3 rounded-lg border border-line/70 bg-wash/40 px-3 py-2">
-                <span className="truncate font-mono text-[12px] text-ink" title={parent ?? ""}>
+                <span className="truncate font-mono text-xs text-ink" title={parent ?? ""}>
                   {parent}
                 </span>
                 <button className="shrink-0 text-xs font-medium text-accent disabled:opacity-50" disabled={busy || waiting} onClick={() => void chooseParent()}>
@@ -257,7 +257,7 @@ export function ProjectPicker({ onClose, info }: Props) {
               />
             </label>
             {parent && name.trim() && (
-              <p className="break-all font-mono text-[11px] text-ink-3">
+              <p className="break-all font-mono text-2xs text-ink-3">
                 {parent}
                 {info.sep}
                 {name.trim()}

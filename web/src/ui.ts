@@ -1,24 +1,40 @@
+// Botões do guia G4: 13px/500, cantos de 6px, ícone + texto com 8px de espaço.
+// A altura do guia é 36px; aqui fica em 32px porque os botões vivem em barras e painéis densos.
 const base =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg h-[30px] text-xs font-medium whitespace-nowrap " +
-  "transition-colors disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex items-center justify-center gap-2 rounded-md h-8 text-label font-medium whitespace-nowrap " +
+  "transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
-/** Ação secundária: contorno discreto. */
-export const btn = `${base} px-3 border border-line bg-sheet text-ink-2 hover:border-line-strong hover:text-ink`;
+/** Ação secundária: fundo branco, borda fina e sombra mínima. */
+export const btn = `${base} px-3 border border-line bg-sheet text-ink shadow-xs hover:border-line-strong hover:bg-wash`;
 
-/** Ação principal do usuário (azul da planta). */
-export const btnPrimary = `${base} px-3 bg-accent text-accent-ink hover:bg-accent/90`;
+/** Ação principal (quase preta): uma por tela. */
+export const btnPrimary = `${base} px-3 border border-accent bg-accent text-accent-ink hover:border-accent-hover hover:bg-accent-hover`;
 
-/** Ação que aciona o Claude (verde-petróleo, a cor de tudo que o Claude faz). */
-export const btnClaude = `${base} px-3 bg-claude text-claude-ink hover:bg-claude/90`;
+/** Ação que aciona o Claude: no guia, é a mesma ação principal. */
+export const btnClaude = btnPrimary;
 
 /** Ação de texto, sem caixa. */
 export const btnGhost = `${base} px-2.5 text-ink-2 hover:bg-wash hover:text-ink`;
 
-export const btnDanger = `${base} px-3 bg-danger text-sheet hover:bg-danger/90`;
+export const btnDanger = `${base} px-3 border border-danger bg-danger text-sheet hover:bg-danger/90`;
 
 export const input =
-  "w-full rounded-lg border border-line bg-sheet px-3 py-2 text-sm text-ink placeholder:text-ink-3 " +
-  "focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-60";
+  "w-full rounded-lg border border-line-strong bg-sheet px-3 py-2 text-sm text-ink placeholder:text-ink-3 " +
+  "hover:border-ink-3/60 focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/30 disabled:opacity-60";
+
+/** Aba sublinhada (Tabs do guia): ativa em ink com traço de 2px na cor principal. */
+export const tabUnderline = (active: boolean) =>
+  `relative flex h-10 items-center gap-1.5 px-0.5 text-label font-medium transition-colors ${
+    active
+      ? "text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent"
+      : "text-ink-3 hover:text-ink"
+  }`;
+
+/** Segmento (SegmentedControl do guia): ativo em bg-subtle. */
+export const segment = (active: boolean) =>
+  `h-7 rounded-md px-3 text-label font-medium transition-colors disabled:opacity-45 ${
+    active ? "bg-wash text-ink" : "text-ink-3 hover:text-ink"
+  }`;
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);

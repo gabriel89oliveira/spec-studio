@@ -34,7 +34,7 @@ export function RenameSource({ current, id, onSubmit, onClose }: Props) {
       <div className="w-full max-w-[460px] space-y-3 rounded-2xl border border-line bg-sheet p-5 shadow-lift">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-[17px] font-semibold text-ink">Renomear fonte</h1>
+            <h1 className="text-lg font-semibold text-ink">Renomear fonte</h1>
             <p className="mt-0.5 text-xs text-ink-2">
               O código <b className="font-semibold">{id}</b> continua o mesmo. Mudam o título, os nomes dos arquivos e as menções ao nome antigo nos documentos.
             </p>

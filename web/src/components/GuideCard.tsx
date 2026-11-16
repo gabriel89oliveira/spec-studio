@@ -131,10 +131,10 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
   );
   return (
     <div className="mx-auto max-w-[780px] px-2 pb-3 xl:px-4" data-testid="guide-card">
-      <section className="space-y-3 rounded-2xl border border-line/70 bg-panel px-5 py-4 shadow-[var(--shadow-panel)]">
+      <section className="space-y-3 rounded-xl border border-line bg-panel px-5 py-4">
         <Steps guide={guide} />
         {finished ? (
-          <p className="text-[13px] text-ink-2">
+          <p className="text-label text-ink-2">
             {guide.status ? (
               <>
                 Situação: <span className="font-medium text-ink">{guide.status}</span>
@@ -147,7 +147,7 @@ export function GuideCard({ path, guide, busy, claudeEnabled, onContinue, onStag
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0 space-y-1.5">
               <div className="text-xs font-semibold uppercase tracking-wide text-ink-3">Próximo passo · {guide.current}</div>
-              <ul className="space-y-0.5 text-[13.5px] leading-snug text-ink">
+              <ul className="space-y-0.5 text-label leading-snug text-ink">
                 {guide.missing.map((m) => (
                   <li key={m.id} className="flex gap-2">
                     <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent/70" aria-hidden="true" />

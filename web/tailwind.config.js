@@ -16,7 +16,10 @@ export default {
         sheet: token("sheet"),
         ink: { DEFAULT: token("ink"), 2: token("ink-2"), 3: token("ink-3") },
         line: { DEFAULT: token("line"), strong: token("line-strong") },
-        accent: { DEFAULT: token("accent"), soft: token("accent-soft"), ink: token("accent-ink") },
+        accent: { DEFAULT: token("accent"), hover: token("accent-hover"), soft: token("accent-soft"), ink: token("accent-ink") },
+        // Barra de 2px do item aberto (o laranja do guia): só como marcador, nunca em texto ou fundo.
+        marker: token("marker"),
+        focus: token("focus"),
         claude: { DEFAULT: token("claude"), soft: token("claude-soft"), ink: token("claude-ink") },
         mark: { DEFAULT: token("mark"), soft: token("mark-soft"), ink: token("mark-ink") },
         danger: { DEFAULT: token("danger"), soft: token("danger-soft") },
@@ -28,12 +31,17 @@ export default {
         sans: ["var(--font-sans)"],
         mono: ["var(--font-mono)"],
       },
+      // Escala do guia: badge 11/16 · caption 12/16 · label 13/20 · body 14/20 · section-title 18/28 · page-title 24/32.
       fontSize: {
-        "2xs": ["11px", "15px"],
-        xs: ["12.5px", "17px"],
+        "2xs": ["11px", "16px"],
+        xs: ["12px", "16px"],
+        label: ["13px", "20px"],
         sm: ["14px", "20px"],
+        lg: ["18px", "28px"],
+        "2xl": ["24px", "32px"],
       },
       boxShadow: {
+        xs: "var(--shadow-xs)",
         lift: "var(--shadow-lift)",
       },
     },

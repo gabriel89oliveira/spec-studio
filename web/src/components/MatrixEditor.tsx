@@ -58,7 +58,7 @@ export function MatrixEditor({ content, disabled, onSave }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-[26px] font-semibold leading-tight text-ink">Matriz de permissões</h1>
-            <p className="mt-1 text-[13.5px] text-ink-2">
+            <p className="mt-1 text-label text-ink-2">
               <b className="font-semibold">S</b> pode · <b className="font-semibold">N</b> não pode · <b className="font-semibold">C</b> pode, com condição (explique na coluna Condição).
             </p>
           </div>
@@ -75,7 +75,7 @@ export function MatrixEditor({ content, disabled, onSave }: Props) {
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-line/70">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-label">
             <thead>
               <tr className="bg-wash/60 text-left text-xs text-ink-2">
                 {t.header.map((h, i) => (
@@ -124,7 +124,7 @@ export function MatrixEditor({ content, disabled, onSave }: Props) {
                         </select>
                       ) : (
                         <input
-                          className={`${input} !h-[28px] !px-2 !py-0 !text-[13px]`}
+                          className={`${input} !h-[28px] !px-2 !py-0 !text-label`}
                           value={r[ci]}
                           aria-label={`${h} da linha ${ri + 1}`}
                           placeholder={ci === 0 ? "Ex.: Criar ordem de serviço" : ""}

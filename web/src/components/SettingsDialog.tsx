@@ -92,7 +92,7 @@ export function SettingsDialog({ app, onClose, onSaved }: Props) {
       <div className="max-h-full w-full max-w-[520px] space-y-3 overflow-y-auto rounded-2xl border border-line bg-sheet p-5 shadow-lift">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-[17px] font-semibold text-ink">Configurações</h1>
+            <h1 className="text-lg font-semibold text-ink">Configurações</h1>
             <p className="mt-0.5 text-xs text-ink-2">Como o Spec Studio fala com o Claude. Vale para todos os projetos.</p>
           </div>
           <button className="rounded-md p-1 text-ink-2 hover:bg-wash" onClick={onClose} aria-label="Fechar" disabled={busy}>
@@ -222,7 +222,7 @@ export function SettingsDialog({ app, onClose, onSaved }: Props) {
                     {test === "running" ? "Testando…" : "Testar conexão"}
                   </button>
                   {test && test !== "running" && (
-                    <p className={`flex-1 rounded-lg px-3 py-2 text-xs ${test.ok ? "bg-claude-soft text-claude-ink" : "bg-danger-soft text-danger"}`} role="status" data-testid="proxy-test-result">
+                    <p className={`flex-1 rounded-lg px-3 py-2 text-xs ${test.ok ? "bg-add-soft text-add" : "bg-danger-soft text-danger"}`} role="status" data-testid="proxy-test-result">
                       {test.message}
                     </p>
                   )}

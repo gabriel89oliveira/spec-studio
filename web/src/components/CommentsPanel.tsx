@@ -65,7 +65,7 @@ const STATUS: Record<Comment["status"], { text: string; bar: string }> = {
 
 function Quote({ text }: { text: string }) {
   return (
-    <blockquote className="line-clamp-3 rounded-r-md border-l-2 border-mark bg-mark-soft/40 py-1 pl-2.5 pr-2 text-[13.5px] italic leading-snug text-ink-2">
+    <blockquote className="line-clamp-3 rounded-r-md border-l-2 border-mark bg-mark-soft/40 py-1 pl-2.5 pr-2 text-label italic leading-snug text-ink-2">
       {text}
     </blockquote>
   );
@@ -83,7 +83,7 @@ function LiveWork({ job, onCancel }: { job: LiveJob; onCancel: () => void }) {
           {toolLabel(t.tool, t.path)}
         </div>
       ))}
-      {job.text && <div className="whitespace-pre-wrap text-[13px] leading-snug text-ink">{job.text}</div>}
+      {job.text && <div className="whitespace-pre-wrap text-label leading-snug text-ink">{job.text}</div>}
       <button
         className={`${btnGhost} -ml-2`}
         onClick={(e) => {
@@ -155,7 +155,7 @@ function Card({ c, props, orphan, fold }: { c: Comment; props: Props; orphan?: b
         </span>
       </div>
       {isFolded ? (
-        <p className="ml-5 mt-0.5 truncate text-[13px] text-ink-2" title={c.body} data-testid="comment-summary">
+        <p className="ml-5 mt-0.5 truncate text-label text-ink-2" title={c.body} data-testid="comment-summary">
           {c.body}
         </p>
       ) : (
@@ -323,7 +323,7 @@ function Section({
   if (items.length === 0) return null;
   return (
     <section className="space-y-2.5">
-      <button className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink" onClick={() => setOpen(!open)} aria-expanded={open}>
+      <button className="flex items-center gap-1.5 text-label font-semibold text-ink-2 hover:text-ink" onClick={() => setOpen(!open)} aria-expanded={open}>
         <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${open ? "rotate-90" : ""}`} />
         {title}
         <span className="font-normal tabular-nums text-ink-3">{items.length}</span>

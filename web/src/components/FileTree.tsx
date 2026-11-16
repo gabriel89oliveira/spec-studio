@@ -70,7 +70,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
     return (
       <div>
         <button
-          className="group flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-medium text-ink-2 hover:text-ink"
+          className="group flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-label font-medium text-ink-2 hover:text-ink"
           style={{ paddingLeft: `${6 + depth * INDENT}px` }}
           onClick={() => setOpen(!open)}
           aria-expanded={open}
@@ -99,8 +99,10 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
   const hasFeats = !!feats && feats.length > 0;
   const row = (
     <button
-      className={`relative my-px flex w-full items-start gap-2 rounded-lg py-1.5 pr-2 text-left text-[13.5px] ${
-        active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-wash hover:text-ink"
+      className={`relative my-px flex w-full items-start gap-2 rounded-lg py-1.5 pr-2 text-left text-label ${
+        active
+          ? "bg-wash font-medium text-ink before:absolute before:-left-2 before:inset-y-1.5 before:w-0.5 before:rounded-r-full before:bg-marker"
+          : "text-ink-2 hover:bg-wash hover:text-ink"
       }`}
       style={{ paddingLeft: `${6 + depth * INDENT}px` }}
       onClick={() => props.onOpen(node.path)}
@@ -123,7 +125,7 @@ function Node({ node, depth, props }: { node: TreeNode; depth: number; props: Pr
           <IconChevron className={`h-3 w-3 text-ink-3 transition-transform ${hasFeats && featOpen ? "rotate-90" : ""}`} />
         </span>
       ) : null}
-      {!feats && <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-accent" : "text-ink-3"}`} />}
+      {!feats && <IconFile className={`mt-[2px] h-[15px] w-[15px] shrink-0 ${active ? "text-ink" : "text-ink-3"}`} />}
       <span className="min-w-0 flex-1 break-words leading-snug [overflow-wrap:anywhere] line-clamp-2">{displayName(node.name)}</span>
       {!!node.openComments && (
         <span
@@ -229,7 +231,7 @@ export function FileTree(props: Props) {
   const nested = useMemo(() => nestFeatures(props.tree), [props.tree]);
 
   return (
-    <aside style={{ width: props.width }} className="flex shrink-0 flex-col overflow-clip rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)]">
+    <aside style={{ width: props.width }} className="flex shrink-0 flex-col overflow-clip rounded-xl border border-line bg-panel">
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3" data-testid="file-tree" aria-label="Arquivos do projeto">
         <ul className="mb-2 space-y-0.5 border-b border-line/60 pb-2" aria-label="Visões do projeto">
           {([["overview", "Visão geral", 0], ["issues", "Problemas", props.badges.issues], ["decisions", "Decisões", props.badges.decisions]] as const).map(([id, label, n]) => (
@@ -237,7 +239,7 @@ export function FileTree(props: Props) {
               <button
                 data-screen={id}
                 aria-current={props.screen === id ? "page" : undefined}
-                className={`flex h-[30px] w-full items-center justify-between rounded-lg px-2.5 text-[13px] font-medium transition-colors ${props.screen === id ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"}`}
+                className={`flex h-[30px] w-full items-center justify-between rounded-lg px-2.5 text-label font-medium transition-colors ${props.screen === id ? "relative bg-wash text-ink before:absolute before:-left-2 before:inset-y-1.5 before:w-0.5 before:rounded-r-full before:bg-marker" : "text-ink-2 hover:bg-wash hover:text-ink"}`}
                 onClick={() => props.onScreen(id)}
               >
                 {label}
@@ -271,22 +273,22 @@ export function FileTree(props: Props) {
           }}
         />
       )}
-      <div className="flex gap-1 border-t border-line/70 p-2">
+      <div className="flex gap-1 border-t border-line p-2">
         <button
           className={`${btnGhost} min-w-0 flex-1 !px-1.5`}
           disabled={!props.canCreate}
           onClick={() => setCreating("feature")}
           title="O Claude cria o arquivo e começa a entrevista"
         >
-          <IconPlus className="h-3.5 w-3.5" />
+          <IconPlus className="h-3.5 w-3.5 shrink-0" />
           Feature
         </button>
         <button className={`${btnGhost} min-w-0 flex-1 !px-1.5`} disabled={!props.canCreate} onClick={() => setCreating("module")}>
-          <IconPlus className="h-3.5 w-3.5" />
+          <IconPlus className="h-3.5 w-3.5 shrink-0" />
           Módulo
         </button>
         <button className={`${btnGhost} min-w-0 flex-1 !px-1.5`} disabled={!props.canCreate} onClick={() => setCreating("source")} title="Importar PDF, texto ou transcrição como fonte de contexto">
-          <IconPlus className="h-3.5 w-3.5" />
+          <IconPlus className="h-3.5 w-3.5 shrink-0" />
           Fonte
         </button>
       </div>

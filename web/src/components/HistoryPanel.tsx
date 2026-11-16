@@ -73,7 +73,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
       <div className="flex min-h-[70vh]">
         <div className="w-80 shrink-0 border-r border-line">
           <div className="px-5 pb-2 pt-5">
-            <div className="text-[17px] font-semibold text-ink">Histórico</div>
+            <div className="text-lg font-semibold text-ink">Histórico</div>
             <div className="text-xs text-ink-3">
               {entries ? `${entries.length} ${entries.length === 1 ? "alteração" : "alterações"} neste arquivo` : "Carregando…"}
             </div>
@@ -100,7 +100,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
                       aria-hidden="true"
                     />
                     <span className="min-w-0">
-                      <span className="line-clamp-2 text-[13.5px] leading-snug text-ink">{e.message}</span>
+                      <span className="line-clamp-2 text-label leading-snug text-ink">{e.message}</span>
                       <span className="mt-0.5 block text-xs text-ink-3">
                         {o.label}, {formatDate(e.date)}
                       </span>
@@ -122,7 +122,7 @@ export function HistoryPanel({ path, refreshKey, disabled, onError }: Props) {
             <div className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[19px] font-semibold leading-tight text-ink">{selected.message}</div>
+                  <div className="text-lg font-semibold text-ink">{selected.message}</div>
                   <div className="mt-1 text-xs text-ink-3">
                     {ORIGIN[selected.origin].label}, {formatDate(selected.date)}, por {selected.author}{" "}
                     <span className="font-mono">{selected.shortHash}</span>

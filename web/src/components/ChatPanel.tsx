@@ -109,7 +109,7 @@ export function ChatPanel({ messages, job, busy, claudeEnabled, openPath, onSend
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
-                  className="block w-full rounded-xl border border-line/80 bg-sheet px-3.5 py-2.5 text-left text-[13px] leading-snug text-ink-2 transition-colors hover:border-claude/50 hover:bg-claude-soft/40 hover:text-ink disabled:opacity-50"
+                  className="block w-full rounded-xl border border-line/80 bg-sheet px-3.5 py-2.5 text-left text-label leading-snug text-ink-2 transition-colors hover:border-claude/50 hover:bg-claude-soft/40 hover:text-ink disabled:opacity-50"
                   disabled={!claudeEnabled}
                   onClick={() => {
                     setText(s);
@@ -124,7 +124,7 @@ export function ChatPanel({ messages, job, busy, claudeEnabled, openPath, onSend
         )}
         {messages.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="ml-8 whitespace-pre-wrap rounded-2xl rounded-br-md bg-accent-soft px-3.5 py-2.5 text-[13.5px] leading-snug text-ink">
+            <div key={i} className="ml-8 whitespace-pre-wrap rounded-2xl rounded-br-md bg-accent-soft px-3.5 py-2.5 text-label leading-snug text-ink">
               {m.text}
             </div>
           ) : (

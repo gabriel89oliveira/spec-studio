@@ -20,7 +20,7 @@ import { useEvents } from "./hooks/useEvents";
 import { useLiveFile } from "./hooks/useLiveFile";
 import type { AppInfo, Anchor, ChatMessage, Comment, LiveJob, Project, Screen, TreeNode, WorkspaceInfo } from "./types";
 import { ProjectPicker } from "./components/ProjectPicker";
-import { btn } from "./ui";
+import { btn, segment, tabUnderline } from "./ui";
 
 type Mode = "view" | "edit" | "history" | "changes";
 
@@ -350,9 +350,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
     <button
       role="tab"
       aria-selected={mode === id}
-      className={`h-7 rounded-lg px-3.5 text-xs font-medium transition-colors disabled:opacity-45 ${
-        mode === id ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"
-      }`}
+      className={segment(mode === id)}
       disabled={!live.doc}
       onClick={() => {
         if (mode === "edit" && id !== "edit" && editorDirty && !window.confirm("Descartar as alterações não salvas?")) return;
@@ -444,7 +442,7 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
             <div
               role="tablist"
               aria-label="Modo"
-              className="flex shrink-0 gap-1 rounded-xl border border-line/70 bg-panel p-1 shadow-[var(--shadow-panel)]"
+              className="flex shrink-0 gap-0.5 rounded-lg border border-line bg-sheet p-0.5"
             >
               {showDoc && tab("view", "Ler")}
               {showDoc && tab("edit", "Editar")}
@@ -569,16 +567,14 @@ export default function App({ workspace }: { workspace: WorkspaceInfo }) {
         </main>
 
         <Resizer pane={sidePane} grows="left" label="Largura do painel de comentários e chat" testId="resize-side" />
-        <aside style={{ width: sidePane.width }} className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-panel shadow-[var(--shadow-panel)]">
-          <div role="tablist" aria-label="Painel" className="flex shrink-0 items-center gap-1 border-b border-line/70 p-2">
+        <aside style={{ width: sidePane.width }} className="flex shrink-0 flex-col overflow-hidden rounded-xl border border-line bg-panel">
+          <div role="tablist" aria-label="Painel" className="flex shrink-0 items-center gap-4 border-b border-line px-4">
             {(["comments", "chat"] as const).map((t) => (
               <button
                 key={t}
                 role="tab"
                 aria-selected={rightTab === t}
-                className={`flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors ${
-                  rightTab === t ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-wash hover:text-ink"
-                }`}
+                className={tabUnderline(rightTab === t)}
                 onClick={() => setRightTab(t)}
               >
                 {t === "comments" ? "Comentários" : "Chat"}
