@@ -4,6 +4,9 @@ name: Release do aplicativo (Windows)
 # v0.1.7 → v0.1.8. Para pular para outra versão (v0.2.0), crie e envie a tag à mão:
 #   git tag -a v0.2.0 -m "Spec Studio 0.2.0" && git push origin v0.2.0
 # Os merges seguintes continuam a partir dela (v0.2.1, v0.2.2…).
+#
+# Tudo roda num job só, no Windows, onde o aplicativo é montado: a tag só é criada
+# depois que os testes passam ali, para não sobrar tag sem release.
 on:
   push:
     branches: [main]
@@ -19,23 +22,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  versao:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+  windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Testa antes de criar a tag: um merge que quebra os testes não vira versão.
       - uses: actions/setup-node@v4
-        if: github.ref == 'refs/heads/main'
         with:
           node-version: 22
           cache: npm
+      - name: Dependências do projeto
+        run: npm ci
       - name: Testes
-        if: github.ref == 'refs/heads/main'
-        run: npm ci && npm test
+        run: npm test
       - name: Define a tag desta versão
         id: tag
         shell: bash
@@ -46,7 +46,7 @@ jobs:
             exit 0
           fi
           if [[ "$GITHUB_REF" != refs/heads/main ]]; then
-            echo "::notice::Versões automáticas saem só da main ou de uma tag v*; nada a fazer em $GITHUB_REF_NAME."
+            echo "::notice::Versões saem só da main ou de uma tag v*; em $GITHUB_REF_NAME os testes rodaram e nada foi publicado."
             echo "tag=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -67,38 +67,26 @@ jobs:
           git push origin "$next"
           echo "Nova tag: $next (anterior: $last)"
           echo "tag=$next" >> "$GITHUB_OUTPUT"
-
-  windows:
-    needs: versao
-    if: needs.versao.outputs.tag != ''
-    runs-on: windows-latest
-    env:
-      TAG: ${{ needs.versao.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.versao.outputs.tag }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Dependências do projeto
-        run: npm ci
-      - name: Testes
-        run: npm test
       - name: Dependências do aplicativo
+        if: steps.tag.outputs.tag != ''
         working-directory: desktop
         run: npm ci
       - name: Versão a partir da tag
+        if: steps.tag.outputs.tag != ''
         shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: echo "SPEC_STUDIO_VERSION=${TAG#v}" >> "$GITHUB_ENV"
       - name: Monta a pasta do aplicativo
+        if: steps.tag.outputs.tag != ''
         working-directory: desktop
         run: npm run stage
       - name: Dependências de produção (traz o executável do Claude para Windows)
+        if: steps.tag.outputs.tag != ''
         working-directory: desktop/stage
         run: npm install --omit=dev --no-audit --no-fund
       - name: Gera o instalador e publica a release neste repositório
+        if: steps.tag.outputs.tag != ''
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

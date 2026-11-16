@@ -165,7 +165,7 @@ describe("scaffold e entrevista (modo simulado)", () => {
     expect(fs.existsSync(path.join(dir, "docs/arquitetura/visao.md"))).toBe(true);
     await api.post("/api/chat").send({ sessionId: start.body.sessionId, message: "Cerca de 200 usuários, equipe de 3 pessoas." }).expect(202);
     await srv.jobs.idle;
-    expect(fs.readFileSync(path.join(dir, "docs/arquitetura/visao.md"), "utf8")).toMatch(/## Contexto e restrições\n\nCerca de 200 usuários/);
+    expect(fs.readFileSync(path.join(dir, "docs/arquitetura/visao.md"), "utf8")).toMatch(/## Contexto e restrições\r?\n\r?\nCerca de 200 usuários/); // no Windows o kit vem com CRLF
     const g = (await api.get("/api/file").query({ path: "docs/arquitetura/visao.md" })).body.guide;
     expect(g.kind).toBe("architecture");
     expect(g.missing[0].id).toBe("estilo");
